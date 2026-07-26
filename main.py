@@ -1,15 +1,15 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 import pandas as pd
 import ta
-import plotly.graph_objects as go
 import warnings
 
 warnings.filterwarnings('ignore')
 
 # --- SAYFA YAPILANDIRMASI & ÖZEL TEMA ---
 st.set_page_config(
-    page_title="Sermaye & Değerleme Terminali v2.0",
+    page_title="Sermaye & Değerleme Terminali v2.1",
     page_icon="💎",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -23,8 +23,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("💎 Akıllı Hisse Filtreleme ve Analiz Terminali v2.0")
-st.caption("BİST, S&P 500 & NASDAQ 100 - Profesyonel Mobil Uyumlu Yatırım Paneli")
+st.title("💎 Akıllı Hisse Filtreleme ve Analiz Terminali v2.1")
+st.caption("BİST, S&P 500 & NASDAQ 100 - Canlı TradingView Entegreli Küresel Terminal")
 
 # --- VERİ ÇEKME VE ÖNBELLEKLEME ---
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -222,7 +222,7 @@ if baslat_butonu:
         st.session_state['taranan_sayi'] = len(secilen_hisseler)
 
 # --- ARAYÜZ (SEKMELİ/TABBED TASARIM) ---
-tab1, tab2, tab3 = st.tabs(["📊 Tarama & Süzgeç Sonuçları", "📈 Hisse Detay & Grafik", "📚 Terimler & Filtre Rehberi"])
+tab1, tab2, tab3 = st.tabs(["📊 Tarama & Süzgeç Sonuçları", "📈 Hisse Detay & TradingView Grafik", "📚 Terimler & Filtre Rehberi"])
 
 # TAB 1: SONUÇLAR
 with tab1:
@@ -249,11 +249,11 @@ with tab1:
         )
         
         csv = df_sonuc.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Sonuçları İndir (Excel/CSV)", csv, "filtre_sonuclari_v2.csv", "text/csv")
+        st.download_button("📥 Sonuçları İndir (Excel/CSV)", csv, "filtre_sonuclari_v2_1.csv", "text/csv")
     else:
         st.info("👈 Sol menüden filtrenizi ayarlayıp **'Taramayı Başlat'** butonuna tıklayın.")
 
-# TAB 2: GRAFİK & DETAY
+# TAB 2: TRADINGVIEW GRAFİK & DETAY
 with tab2:
     if 'sonuc_df' in st.session_state and not st.session_state['sonuc_df'].empty:
         df_hafiza = st.session_state['sonuc_df']
@@ -262,35 +262,63 @@ with tab2:
         
         financials, info, history = fetch_stock_raw_data(tam_kod)
         
-        if history is not None and not history.empty:
+        if info:
             # KPI KARTLARI
             k1, k2, k3, k4 = st.columns(4)
-            k1.metric("Son Fiyat", f"{history['Close'].iloc[-1]:.2f} ₺/$")
+            son_fiyat = history['Close'].iloc[-1] if (history is not None and not history.empty) else 0
+            k1.metric("Son Fiyat", f"{son_fiyat:.2f} ₺/$")
             k2.metric("F/K Oranı", info.get('forwardPE') or 'N/A')
             k3.metric("Özkaynak Kârlılığı (ROE)", f"%{round((info.get('returnOnEquity') or 0)*100, 1)}")
             k4.metric("Cari Oran", info.get('currentRatio') or 'N/A')
             
             st.markdown("---")
-            col_l, col_r = st.columns(2)
             
-            with col_l:
-                st.markdown(f"##### 📊 {secilen_kod} - 1 Yıllık Candlestick Grafik")
-                fig = go.Figure(data=[go.Candlestick(
-                    x=history.index, open=history['Open'], high=history['High'],
-                    low=history['Low'], close=history['Close'], name=secilen_kod
-                )])
-                fig.update_layout(xaxis_rangeslider_visible=False, height=380, margin=dict(l=10, r=10, t=10, b=10))
-                st.plotly_chart(fig, use_container_width=True)
-                
-            with col_r:
-                st.markdown(f"##### 💰 {secilen_kod} - Çeyreklik Net Kâr & FAVÖK")
-                if financials is not None and not financials.empty:
-                    eb_series = get_financial_value(financials, ['EBITDA', 'Normalized EBITDA', 'Operating Income'])
-                    net_series = get_financial_value(financials, ['Net Income', 'Net Income Common Stockholders'])
-                    if eb_series is not None and net_series is not None:
-                        mali_df = pd.DataFrame({'FAVÖK': eb_series.iloc[:4][::-1], 'Net Kâr': net_series.iloc[:4][::-1]})
-                        mali_df.index = [str(col).split('T')[0] for col in mali_df.index]
-                        st.bar_chart(mali_df, height=340)
+            # TradingView Sembol Formatı Hazırlama
+            if '.IS' in tam_kod:
+                tv_symbol = f"BIST:{secilen_kod}"
+            else:
+                tv_symbol = secilen_kod.replace('-', '.')
+
+            st.markdown(f"##### 📈 {secilen_kod} - Canlı TradingView Grafiği ve Çizim Araçları")
+
+            # TradingView Widget Embed
+            tv_widget_html = f"""
+            <div class="tradingview-widget-container" style="height:550px;width:100%">
+              <div id="tradingview_chart" style="height:500px;width:100%"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+              <script type="text/javascript">
+              new TradingView.widget(
+              {{
+                "autosize": true,
+                "symbol": "{tv_symbol}",
+                "interval": "D",
+                "timezone": "Europe/Istanbul",
+                "theme": "dark",
+                "style": "1",
+                "locale": "tr",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "allow_symbol_change": true,
+                "show_popup_button": true,
+                "popup_width": "1000",
+                "popup_height": "650",
+                "container_id": "tradingview_chart"
+              }}
+              );
+              </script>
+            </div>
+            """
+            components.html(tv_widget_html, height=520)
+
+            st.markdown("---")
+            st.markdown(f"##### 💰 {secilen_kod} - Çeyreklik Net Kâr & FAVÖK Trendi")
+            if financials is not None and not financials.empty:
+                eb_series = get_financial_value(financials, ['EBITDA', 'Normalized EBITDA', 'Operating Income'])
+                net_series = get_financial_value(financials, ['Net Income', 'Net Income Common Stockholders'])
+                if eb_series is not None and net_series is not None:
+                    mali_df = pd.DataFrame({'FAVÖK': eb_series.iloc[:4][::-1], 'Net Kâr': net_series.iloc[:4][::-1]})
+                    mali_df.index = [str(col).split('T')[0] for col in mali_df.index]
+                    st.bar_chart(mali_df, height=300)
     else:
         st.info("Detay inceleme yapabilmek için önce Tab 1 ekranından tarama yapmalısınız.")
 
