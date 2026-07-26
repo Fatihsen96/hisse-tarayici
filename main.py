@@ -11,13 +11,13 @@ warnings.filterwarnings('ignore')
 
 # --- SAYFA YAPILANDIRMASI ---
 st.set_page_config(
-    page_title="Sermaye Terminali v12.0",
+    page_title="Sermaye Terminali v13.0",
     page_icon="🖤",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- CSS OVERRIDE (YAZI GÖRÜNMEME FIX & TEMİZ ARAYÜZ) ---
+# --- CSS OVERRIDE ---
 st.markdown("""
     <style>
     header[data-testid="stHeader"] {
@@ -247,8 +247,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Sermaye & Değerleme Terminali v12.0")
-st.caption("BİST & Küresel Piyasalar - Profesyonel Borsa Terminali")
+st.title("🖤 Sermaye & Değerleme Terminali v13.0")
+st.caption("BİST & Küresel Piyasalar - Tam Entegre Borsa Terminali")
 
 # --- TRADINGVIEW SEMBOL DÜZELTİCİ ---
 def get_tradingview_symbol(hisse_kodu):
@@ -257,7 +257,7 @@ def get_tradingview_symbol(hisse_kodu):
         return f"BIST:{clean_code}"
     return clean_code
 
-# --- DÜZELTİLMİŞ KARARLI LOGO APİSİ VE YEDEK MEKANİZMASI ---
+# --- LOGO APİSİ VE YEDEK MEKANİZMASI ---
 def get_stock_logo_url(hisse_kodu):
     clean_code = hisse_kodu.replace('.IS', '').upper()
     if '.IS' in hisse_kodu:
@@ -458,7 +458,6 @@ def render_karne_cards_with_tooltip(karne, degisimler):
     with c3: st.markdown(build_karne_tt("Borçluluk Karnesi", karne['borcluluk'], karne['borcluluk_detay']), unsafe_allow_html=True)
     with c4: st.markdown(build_degisim_tt(), unsafe_allow_html=True)
 
-# --- DÜZELTİLMİŞ TABLO VE YEDEK LOGO MEKANİZMASI ---
 def render_fintables_html_table(df, columns_map):
     if df.empty:
         st.warning("Gösterilecek veri bulunamadı.")
@@ -494,7 +493,6 @@ def render_fintables_html_table(df, columns_map):
         short_avatar = hisse_kodu[:2]
 
         html += f'<tr><td>{idx}</td>'
-        # Resim yüklenemezse otomatik olarak Şık İlk İki Harf Avatarı gösterilir
         html += f'<td><img src="{logo_url}" class="stock-logo" onerror="this.onerror=null; this.outerHTML=\'<span class=\\\'stock-avatar\\\'>{short_avatar}</span>\';"><b>{hisse_kodu}</b></td>'
 
         for col_key in columns_map.keys():
@@ -692,61 +690,29 @@ with st.sidebar.expander("🎯 Piyasa & Endeks Seçimi", expanded=True):
     )
 
 with st.sidebar.expander("📊 Temel Analiz Filtreleri", expanded=True):
-    fk_aktif = st.checkbox(
-        "F/K Filtresi", 
-        value=True, 
-        help="Fiyat/Kazanç Oranı. Şirketin kendini kaç yılda amorti ettiğini gösterir. Düşük F/K ucuzluğa işaret edebilir."
-    )
+    fk_aktif = st.checkbox("F/K Filtresi", value=True, help="Fiyat/Kazanç Oranı. Şirketin kendini kaç yılda amorti ettiğini gösterir.")
     max_fk = st.slider("Maksimum F/K", 1.0, 100.0, 35.0, 1.0, help="Aşırı pahalı veya balon fiyatlanmış hisseleri eler.") if fk_aktif else 999.0
 
-    peg_aktif = st.checkbox(
-        "PEG Oranı Filtresi", 
-        value=False, 
-        help="F/K oranının kâr büyüme hızına oranıdır. PEG < 1 olan şirketler, büyümesine göre ucuz kabul edilir."
-    )
+    peg_aktif = st.checkbox("PEG Oranı Filtresi", value=False, help="F/K oranının kâr büyüme hızına oranıdır. PEG < 1 olan şirketler ucuz kabul edilir.")
     max_peg = st.slider("Maksimum PEG", 0.1, 5.0, 1.5, 0.1, help="Büyümesine göre pahalı kalan hisseleri eler.") if peg_aktif else 999.0
 
-    pddd_aktif = st.checkbox(
-        "PD/DD Filtresi", 
-        value=True, 
-        help="Piyasa Değeri / Defter Değeri. Şirketin borsa değerinin özkaynaklarına oranıdır."
-    )
+    pddd_aktif = st.checkbox("PD/DD Filtresi", value=True, help="Piyasa Değeri / Defter Değeri.")
     max_pddd = st.slider("Maksimum PD/DD", 0.5, 20.0, 10.0, 0.5, help="Varlıklarına göre aşırı fiyatlanmış şirketleri eler.") if pddd_aktif else 999.0
 
-    roe_aktif = st.checkbox(
-        "ROE (Özkaynak Kârlılığı)", 
-        value=True, 
-        help="Şirketin ortakların koyduğu sermaye ile ne kadar net kâr ürettiğini yüzde (%) olarak ölçer."
-    )
+    roe_aktif = st.checkbox("ROE (Özkaynak Kârlılığı)", value=True, help="Şirketin ortakların sermayesiyle ne kadar net kâr ürettiğini gösterir.")
     min_roe = st.slider("Minimum ROE (%)", 0, 100, 10, 5, help="Sermayesini verimsiz kullanan şirketleri eler.") if roe_aktif else -999.0
 
-    cari_oran_aktif = st.checkbox(
-        "Cari Oran (Likidite)", 
-        value=True, 
-        help="Dönen Varlıklar / Kısa Vadeli Borçlar. 1.5 ve üzeri sağlıklı likiditeyi gösterir."
-    )
+    cari_oran_aktif = st.checkbox("Cari Oran (Likidite)", value=True, help="Dönen Varlıklar / Kısa Vadeli Borçlar.")
     min_cari_oran = st.slider("Minimum Cari Oran", 0.5, 5.0, 1.0, 0.1, help="Borç ödeme krizi riski olan şirketleri eler.") if cari_oran_aktif else 0.0
 
-    borc_aktif = st.checkbox(
-        "Borç / Özkaynak Oranı", 
-        value=False, 
-        help="Toplam Finansal Borç / Özkaynak. Şirketin borç yükünün özsermayeye oranını gösterir."
-    )
+    borc_aktif = st.checkbox("Borç / Özkaynak Oranı", value=False, help="Toplam Finansal Borç / Özkaynak.")
     max_borc_ozkaynak = st.slider("Maksimum Borç/Özkaynak", 0.1, 10.0, 2.0, 0.1, help="Aşırı borçlu riskli şirketleri eler.") if borc_aktif else 999.0
 
-    marj_aktif = st.checkbox(
-        "Net Kâr Marjı (%)", 
-        value=False, 
-        help="Net Kâr / Toplam Satışlar. Şirketin her 100 TL satıştan ne kadar net kâr bıraktığını gösterir."
-    )
+    marj_aktif = st.checkbox("Net Kâr Marjı (%)", value=False, help="Net Kâr / Toplam Satışlar.")
     min_net_marj = st.slider("Minimum Net Marj (%)", 0, 50, 5, 1, help="Kârlılığı zayıf operasyonları olan şirketleri eler.") if marj_aktif else -999.0
 
 with st.sidebar.expander("⚡ Teknik Analiz Filtreleri", expanded=False):
-    rsi_aktif = st.checkbox(
-        "RSI (14) Filtresi", 
-        value=True, 
-        help="Göreceli Güç Endeksi. 30 altı ucuz/aşırı satım, 70 üstü pahalı/aşırı alımdır."
-    )
+    rsi_aktif = st.checkbox("RSI (14) Filtresi", value=True, help="Göreceli Güç Endeksi.")
     rsi_araligi = st.slider("RSI Aralığı", 0, 100, (30, 70)) if rsi_aktif else (0, 100)
 
 filtre_paketı = {
@@ -798,9 +764,12 @@ else:
     girilen = st.sidebar.text_area("Hisseler (Virgülle):", "THYAO.IS, NVDA, AAPL")
     secilen_hisseler = [h.strip() for h in girilen.split(',') if h.strip()]
 
-st.sidebar.button("🔄 Verileri Yenile / Yeniden Tara", type="primary")
+yenile_tiklandi = st.sidebar.button("🔄 Verileri Yenile / Yeniden Tara", type="primary")
 
-# --- MADDE 2: ANINDA YÜKLENME (HAZIR ANLIK SONUÇ MOTORU) ---
+# --- DINAMIK HAFİFAŞ KONTROLÜ (DÜZELTME v13.0) ---
+# Piyasa değiştiğinde veya yenileye basıldığında otomatik yeniden tara
+cache_key = f"tarama_{piyasa_secimi}_{str(filtre_paketı)}"
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def otomatık_paralel_tarama(hisse_listesi, filtreler):
     tum_sonuclar = []
@@ -816,10 +785,10 @@ def otomatık_paralel_tarama(hisse_listesi, filtreler):
         return df
     return pd.DataFrame()
 
-# Oturum Hafızası ile Hızlı Yükleme
-if 'son_tarama_sonucu' not in st.session_state:
-    with st.spinner(f"{len(secilen_hisseler)} hisse taranıyor..."):
+if yenile_tiklandi or 'mevcut_cache_key' not in st.session_state or st.session_state['mevcut_cache_key'] != cache_key:
+    with st.spinner(f"{piyasa_secimi} taranıyor..."):
         st.session_state['son_tarama_sonucu'] = otomatık_paralel_tarama(secilen_hisseler, filtre_paketı)
+        st.session_state['mevcut_cache_key'] = cache_key
 
 df_tum_hisseler = st.session_state['son_tarama_sonucu']
 
@@ -896,7 +865,7 @@ with tab_ana1:
             })
             
         csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v12.csv", "text/csv")
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v13.csv", "text/csv")
 
 with tab_ana2:
     if not df_tum_hisseler.empty:
@@ -982,4 +951,3 @@ with tab_ana2:
             with c_g1: ciz_koyu_cubuk_grafik(rev, "Çeyreklik Satışlar", "#38bdf8")
             with c_g2: ciz_koyu_cubuk_grafik(ebitda, "Çeyreklik FAVÖK", "#818cf8")
             with c_g3: ciz_koyu_cubuk_grafik(net_inc, "Çeyreklik Net Kâr", "#34d399")
-            
