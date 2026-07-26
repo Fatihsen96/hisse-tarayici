@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore')
 
 # --- SAYFA YAPILANDIRMASI ---
 st.set_page_config(
-    page_title="Sermaye Terminali v14.0",
+    page_title="Sermaye Terminali v15.0",
     page_icon="🖤",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,7 +34,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* SOL MENÜ (SIDEBAR) - RADYO DAİRELERİNİN TAMAMEN KALDIRILMASI VE FINTABLES TARZI BAR */
+    /* SOL MENÜ (SIDEBAR) - KUSURSUZ FINTABLES TARZI SEÇİM BARLARI */
     [data-testid="stSidebar"] {
         background-color: #121216 !important;
         border-right: 1px solid #22222a !important;
@@ -43,22 +43,30 @@ st.markdown("""
         color: #ffffff !important;
     }
     
+    [data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 6px !important;
+    }
     [data-testid="stSidebar"] div[role="radiogroup"] label {
         background-color: #181820 !important;
         border: 1px solid #2b2b38 !important;
         border-radius: 6px !important;
         padding: 10px 14px !important;
-        margin-bottom: 6px !important;
+        margin: 0 !important;
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
+        width: 100% !important;
         transition: all 0.2s ease !important;
     }
-    /* Radyo dairelerini tamamen gizle */
-    [data-testid="stSidebar"] div[role="radiogroup"] label div:first-child {
+    /* Radyo dairelerini ve inputlarını tamamen gizle, yazıyı net göster */
+    [data-testid="stSidebar"] div[role="radiogroup"] input[type="radio"] {
         display: none !important;
     }
-    [data-testid="stSidebar"] div[role="radiogroup"] label p {
+    [data-testid="stSidebar"] div[role="radiogroup"] label div {
+        background: transparent !important;
+    }
+    [data-testid="stSidebar"] div[role="radiogroup"] label p,
+    [data-testid="stSidebar"] div[role="radiogroup"] label span {
         color: #f1f5f9 !important;
         font-weight: 500 !important;
         font-size: 0.92rem !important;
@@ -67,13 +75,17 @@ st.markdown("""
     [data-testid="stSidebar"] div[role="radiogroup"] label:hover {
         border-color: #38bdf8 !important;
         background-color: #222230 !important;
+    }
+    [data-testid="stSidebar"] div[role="radiogroup"] label:hover p,
+    [data-testid="stSidebar"] div[role="radiogroup"] label:hover span {
         color: #38bdf8 !important;
     }
     [data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
         background-color: #1e293b !important;
         border-color: #38bdf8 !important;
     }
-    [data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] p {
+    [data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] p,
+    [data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] span {
         color: #38bdf8 !important;
         font-weight: 700 !important;
     }
@@ -95,7 +107,7 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* BİLANÇO TABLOLARI BEYAZ YAZI DÜZELTMESİ (KIRMIZI ALAN) */
+    /* BİLANÇO TABLOLARI BEYAZ YAZI DÜZELTMESİ */
     [data-testid="stTable"] {
         background-color: #14141a !important;
     }
@@ -144,7 +156,7 @@ st.markdown("""
         border-bottom: 2px solid #38bdf8 !important;
     }
 
-    /* HOVER TOOLTIP POP-UP MİMARİSİ (TURUNCU ALAN DÜZELTMESİ) */
+    /* HOVER TOOLTIP POP-UP MİMARİSİ */
     .tooltip-container {
         position: relative;
         display: block;
@@ -266,7 +278,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Sermaye & Değerleme Terminali v14.0")
+st.title("🖤 Sermaye & Değerleme Terminali v15.0")
 st.caption("BİST & Küresel Piyasalar - Profesyonel Borsa Terminali")
 
 def get_tradingview_symbol(hisse_kodu):
@@ -416,7 +428,6 @@ def hesapla_fintables_karne_detayli(financials, balance_sheet, info):
         'borcluluk_detay': borcluluk_detay
     }
 
-# --- MADDE 2 DÜZELTMESİ: "FAREYİ GETİR" YAZISI KALDIRILDI ---
 def render_karne_cards_with_tooltip(karne, degisimler):
     def build_karne_tt(title, skor, detay_list):
         items_html = ""
@@ -642,7 +653,7 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
     elenme_nedeni = "Başarılı"
     basarili_mi = True
 
-    # --- MADDE 3 DÜZELTMESİ: ONDALIK HASSASİYETİ TEK BASAMAĞA İNDİRİldİ ---
+    # --- ONDALIK HASSASİYETİ KESİN SINIRLAMA (:.1f) ---
     if son_net_kar is None or pd.isna(son_net_kar) or son_net_kar <= 0:
         elenme_nedeni = "❌ Net Kâr Negatif"
         basarili_mi = False
@@ -669,7 +680,8 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
         elenme_nedeni = f"❌ Düşük Cari Oran ({val_str})"
         basarili_mi = False
     elif filtreler['borc_aktif'] and (debt_to_equity > filtreler['max_borc_ozkaynak']):
-        elenme_nedeni = f"❌ Yüksek Borç/Özkaynak ({debt_to_equity:.1f})"
+        val_str = f"{debt_to_equity:.1f}" if debt_to_equity else 'N/A'
+        elenme_nedeni = f"❌ Yüksek Borç/Özkaynak ({val_str})"
         basarili_mi = False
     elif filtreler['marj_aktif'] and (profit_margins < filtreler['min_net_marj']):
         elenme_nedeni = f"❌ Düşük Net Marj (%{profit_margins:.1f})"
@@ -886,7 +898,7 @@ with tab_ana1:
             })
             
         csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v14.csv", "text/csv")
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v15.csv", "text/csv")
 
 with tab_ana2:
     if not df_tum_hisseler.empty:
