@@ -9,18 +9,18 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-# --- SAYFA YAPILANDIRMASI & KUSURSUZ MAT SİYAH TEMA ---
+# --- SAYFA YAPILANDIRMASI & KUSURSUZ FINTABLES MAT SİYAH TEMA ---
 st.set_page_config(
-    page_title="Sermaye Terminali v8.0 True Dark",
+    page_title="Sermaye Terminali v9.0 Logo Engine",
     page_icon="🖤",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# KUSURSUZ MAT SİYAH & YÜKSEK KONTRASTLI OVERRIDE CSS
+# FINTABLES BİREBİR DARK CSS OVERRIDE
 st.markdown("""
     <style>
-    /* 1. Ana Arka Plan ve Header */
+    /* 1. Ana Arka Plan */
     .stApp {
         background-color: #0b0b0e !important;
         color: #ffffff !important;
@@ -29,7 +29,7 @@ st.markdown("""
         background-color: #0b0b0e !important;
     }
     
-    /* 2. Sol Menü (Sidebar) Temizliği */
+    /* 2. Sol Menü (Sidebar) */
     [data-testid="stSidebar"] {
         background-color: #121216 !important;
         border-right: 1px solid #22222a !important;
@@ -44,7 +44,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* 3. Açılır Menü (Expander) Bembeyaz Kutu Fix */
+    /* 3. Açılır Menü (Expander) */
     div[data-testid="stExpander"] {
         background-color: #18181e !important;
         border: 1px solid #2b2b36 !important;
@@ -60,11 +60,8 @@ st.markdown("""
         color: #ffffff !important;
         font-weight: bold !important;
     }
-    div[data-testid="stExpander"] details summary:hover {
-        background-color: #22222b !important;
-    }
 
-    /* 4. Butonlar ve İndirme Butonu Beyaz Kutu Fix */
+    /* 4. İndirme ve Genel Butonlar */
     .stButton > button, .stDownloadButton > button {
         background-color: #1e1e28 !important;
         color: #ffffff !important;
@@ -96,28 +93,67 @@ st.markdown("""
         color: #38bdf8 !important;
         border-bottom: 2px solid #38bdf8 !important;
     }
-    
-    /* 6. Metrik Kartları */
-    .stMetric {
-        background-color: #16161c !important;
-        border: 1px solid #262632 !important;
-        border-radius: 8px !important;
-        padding: 12px !important;
+
+    /* 6. FINTABLES STİL ÖZEL MAT SİYAH TABLO CSS */
+    .fintables-container {
+        width: 100%;
+        max-height: 650px;
+        overflow-y: auto;
+        overflow-x: auto;
+        border: 1px solid #262632;
+        border-radius: 8px;
+        background-color: #121216;
+        margin-bottom: 15px;
     }
-    [data-testid="stMetricLabel"] { color: #a0a0ab !important; font-size: 0.85rem !important; }
-    [data-testid="stMetricValue"] { color: #38bdf8 !important; font-weight: 700 !important; font-size: 1.6rem !important; }
-    
-    /* 7. Tablo (DataFrame) Koyu Zemin */
-    [data-testid="stDataFrame"] {
-        background-color: #14141a !important;
-        border: 1px solid #262632 !important;
-        border-radius: 8px !important;
+    .fintables-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        color: #ffffff;
     }
+    .fintables-table th {
+        position: sticky;
+        top: 0;
+        background-color: #181820;
+        color: #a0a0ab;
+        font-weight: 600;
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid #262632;
+        z-index: 10;
+    }
+    .fintables-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #1e1e26;
+        white-space: nowrap;
+    }
+    .fintables-table tr:hover {
+        background-color: #1e1e28;
+    }
+    .stock-logo {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        margin-right: 10px;
+        vertical-align: middle;
+        object-fit: contain;
+        background-color: #2a2a36;
+    }
+    .badge-pass { color: #34d399; font-weight: bold; }
+    .badge-fail { color: #f87171; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Sermaye & Değerleme Terminali v8.0")
-st.caption("BİST & Küresel Piyasalar - Mat Siyah Yüksek Kontrastlı Borsa Terminali")
+st.title("🖤 Sermaye & Değerleme Terminali v9.0")
+st.caption("BİST & Küresel Piyasalar - Logolu Mat Siyah Fintables Borsa Ekranı")
+
+# --- HİSSE LOGO ADRESİ OLUŞTURUCU ---
+def get_stock_logo_url(hisse_kodu):
+    clean_code = hisse_kodu.replace('.IS', '').upper()
+    if '.IS' in hisse_kodu:
+        return f"https://s3-symbol-logo.tradingview.com/borsa-istanbul/{clean_code}.svg"
+    return f"https://s3-symbol-logo.tradingview.com/{clean_code.lower()}.svg"
 
 # --- MİLYAR / MİLYON FORMATLAMA ---
 def format_para(val):
@@ -126,6 +162,48 @@ def format_para(val):
     if abs_v >= 1e9: return f"{val / 1e9:.2f} mr"
     elif abs_v >= 1e6: return f"{val / 1e6:.2f} mn"
     return f"{val:,.0f}"
+
+# --- FINTABLES STİL HTML TABLO RENDER EDİCİ ---
+def render_fintables_html_table(df, columns_map):
+    if df.empty:
+        st.warning("Gösterilecek veri bulunamadı.")
+        return
+
+    html = '<div class="fintables-container"><table class="fintables-table"><thead><tr>'
+    html += '<th style="width:50px;">#</th><th>Hisse</th>'
+    
+    for col_name in columns_map.values():
+        html += f'<th>{col_name}</th>'
+    html += '</tr></thead><tbody>'
+
+    for idx, row in df.iterrows():
+        hisse_kodu = str(row['Hisse Kodu'])
+        tam_kod = str(row.get('Tam Kod', hisse_kodu))
+        logo_url = get_stock_logo_url(tam_kod)
+
+        html += f'<tr><td>{idx}</td>'
+        html += f'<td><img src="{logo_url}" class="stock-logo" onerror="this.style.display=\'none\'"><b>{hisse_kodu}</b></td>'
+
+        for col_key in columns_map.keys():
+            val = row.get(col_key, 'N/A')
+            if pd.isna(val) or val is None:
+                val = 'N/A'
+            elif col_key in ['ROE (%)', 'Net Marj (%)']:
+                val = f"%{val}"
+            
+            # Durum / Elenme Renklendirme
+            if col_key == 'Durum':
+                val_str = f'<span class="badge-pass">{val}</span>' if 'Geçti' in str(val) else f'<span class="badge-fail">{val}</span>'
+            elif col_key == 'Elenme Nedeni' and '❌' in str(val):
+                val_str = f'<span class="badge-fail">{val}</span>'
+            else:
+                val_str = str(val)
+
+            html += f'<td>{val_str}</td>'
+        html += '</tr>'
+
+    html += '</tbody></table></div>'
+    st.markdown(html, unsafe_allow_html=True)
 
 # --- KOYU TEMALI PLOTLY GRAFİK ---
 def ciz_koyu_cubuk_grafik(data_series, baslik, renk="#38bdf8"):
@@ -260,6 +338,7 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
         return {
             'Hisse Kodu': hisse_kodu.replace('.IS', ''),
             'Tam Kod': hisse_kodu,
+            'Piyasa': 'BİST' if '.IS' in hisse_kodu else 'ABD',
             'Durum': '❌ Elendi',
             'Elenme Nedeni': 'Eksik Bilanço Verisi',
             'Piyasa Değeri': 'N/A', 'Firma Değeri': 'N/A', 'Temel Skor': 0, 'F/K': None, 'PD/DD': None, 'PEG': None,
@@ -349,14 +428,14 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
         'Temel Skor': hesapla_temel_skor(info),
         'Piyasa Değeri': format_para(market_cap),
         'Firma Değeri': format_para(enterprise_val),
-        'F/K': round(fk, 2) if fk else None,
-        'PD/DD': round(pd_dd, 2) if pd_dd else None,
-        'PEG': round(peg, 2) if peg else None,
-        'ROE (%)': round(roe, 2) if roe else None,
-        'Net Marj (%)': round(profit_margins, 2) if profit_margins else None,
-        'Cari Oran': round(current_ratio, 2) if current_ratio else None,
-        'Borç/Özkaynak': round(debt_to_equity, 2) if debt_to_equity else None,
-        'RSI (14)': round(son_rsi, 2) if son_rsi else None,
+        'F/K': round(fk, 2) if fk else 'N/A',
+        'PD/DD': round(pd_dd, 2) if pd_dd else 'N/A',
+        'PEG': round(peg, 2) if peg else 'N/A',
+        'ROE (%)': round(roe, 2) if roe else 'N/A',
+        'Net Marj (%)': round(profit_margins, 2) if profit_margins else 'N/A',
+        'Cari Oran': round(current_ratio, 2) if current_ratio else 'N/A',
+        'Borç/Özkaynak': round(debt_to_equity, 2) if debt_to_equity else 'N/A',
+        'RSI (14)': round(son_rsi, 2) if son_rsi else 'N/A',
         'MACD Trend': macd_durum,
         'Teknik Sinyal': teknik_sinyal,
         'Son Net Kâr': format_para(son_net_kar),
@@ -496,42 +575,53 @@ with tab_ana1:
         ])
 
         with kat_degerleme:
-            st.caption("Süzgeçten geçen şirketlerin piyasa değerleri, F/K, PD/DD ve PEG oranları:")
-            st.dataframe(
-                df_gecenler[['Hisse Kodu', 'Piyasa', 'Temel Skor', 'Piyasa Değeri', 'Firma Değeri', 'F/K', 'PD/DD', 'PEG']],
-                use_container_width=True
-            )
+            st.caption("Süzgeçten geçen şirketlerin piyasa değerleri ve değerleme çarpanları:")
+            render_fintables_html_table(df_gecenler, {
+                'Piyasa Değeri': 'Piyasa Değeri',
+                'Firma Değeri': 'Firma Değeri',
+                'F/K': 'F/K',
+                'PD/DD': 'PD/DD',
+                'PEG': 'PEG'
+            })
 
         with kat_karlilik:
-            st.caption("Şirketlerin Özkaynak Kârlılığı (ROE), Net Marjı, Son Net Kârı ve FAVÖK büyüklükleri:")
-            st.dataframe(
-                df_gecenler[['Hisse Kodu', 'Temel Skor', 'ROE (%)', 'Net Marj (%)', 'Son Net Kâr', 'Son FAVÖK']],
-                use_container_width=True
-            )
+            st.caption("Özkaynak Kârlılığı (ROE), Net Marj, Net Kâr ve FAVÖK büyüklükleri:")
+            render_fintables_html_table(df_gecenler, {
+                'Temel Skor': 'Temel Skor',
+                'ROE (%)': 'ROE (%)',
+                'Net Marj (%)': 'Net Marj (%)',
+                'Son Net Kâr': 'Son Net Kâr',
+                'Son FAVÖK': 'Son FAVÖK'
+            })
 
         with kat_borcluluk:
             st.caption("Cari Oran (Likidite) ve Borç/Özkaynak oranları:")
-            st.dataframe(
-                df_gecenler[['Hisse Kodu', 'Temel Skor', 'Cari Oran', 'Borç/Özkaynak']],
-                use_container_width=True
-            )
+            render_fintables_html_table(df_gecenler, {
+                'Temel Skor': 'Temel Skor',
+                'Cari Oran': 'Cari Oran',
+                'Borç/Özkaynak': 'Borç/Özkaynak'
+            })
 
         with kat_teknik:
             st.caption("Teknik Alım Sinyali, RSI (14) ve MACD Trend Durumu:")
-            st.dataframe(
-                df_gecenler[['Hisse Kodu', 'Teknik Sinyal', 'RSI (14)', 'MACD Trend']],
-                use_container_width=True
-            )
+            render_fintables_html_table(df_gecenler, {
+                'Teknik Sinyal': 'Teknik Sinyal',
+                'RSI (14)': 'RSI (14)',
+                'MACD Trend': 'MACD Trend'
+            })
 
         with kat_elenenler:
-            st.caption("Süzgeçten geçemeyen şirketler ve detaylı elenme nedenleri:")
-            st.dataframe(
-                df_elenenler[['Hisse Kodu', 'Elenme Nedeni', 'Piyasa Değeri', 'F/K', 'ROE (%)', 'Cari Oran', 'RSI (14)']],
-                use_container_width=True
-            )
+            st.caption("Süzgeçten geçemeyen şirketler ve elenme gerekçeleri:")
+            render_fintables_html_table(df_elenenler, {
+                'Elenme Nedeni': 'Elenme Nedeni',
+                'Piyasa Değeri': 'Piyasa Değeri',
+                'F/K': 'F/K',
+                'ROE (%)': 'ROE (%)',
+                'Cari Oran': 'Cari Oran'
+            })
             
         csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "tum_hisse_analiz_raporu_v8.csv", "text/csv")
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_logo_terminal_v9.csv", "text/csv")
 
 with tab_ana2:
     if not df_tum_hisseler.empty:
