@@ -11,16 +11,15 @@ warnings.filterwarnings('ignore')
 
 # --- SAYFA YAPILANDIRMASI ---
 st.set_page_config(
-    page_title="Sermaye Terminali v11.0",
+    page_title="Sermaye Terminali v12.0",
     page_icon="🖤",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- MADDE 1 & MADDE 3 OVERRIDE CSS ---
+# --- CSS OVERRIDE (YAZI GÖRÜNMEME FIX & TEMİZ ARAYÜZ) ---
 st.markdown("""
     <style>
-    /* 1. ÜST BARIN TAMAMEN GİZLENMESİ VE ALAN DÜZENİ */
     header[data-testid="stHeader"] {
         display: none !important;
         visibility: hidden !important;
@@ -35,7 +34,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* 2. SOL MENÜ (SIDEBAR) & YUVARLAK BUTONLARIN GİZLENMESİ */
+    /* SOL MENÜ (SIDEBAR) STİLİ */
     [data-testid="stSidebar"] {
         background-color: #121216 !important;
         border-right: 1px solid #22222a !important;
@@ -44,31 +43,38 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* Yuvarlak Radyo Noktalarını Gizle ve Şık Kutuya Dönüştür */
-    [data-testid="stSidebar"] div[role="radiogroup"] label div:first-child {
-        display: none !important;
-    }
+    /* RADYO BUTON YAZI GÖRÜNMEME DÜZELTMESİ */
     [data-testid="stSidebar"] div[role="radiogroup"] label {
+        background-color: #181820 !important;
+        border: 1px solid #2b2b38 !important;
+        border-radius: 8px !important;
         padding: 8px 12px !important;
-        border-radius: 6px !important;
-        background-color: #18181e !important;
         margin-bottom: 6px !important;
-        border: 1px solid #282836 !important;
         cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
         transition: all 0.2s ease !important;
+    }
+    [data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #f1f5f9 !important;
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
+        margin: 0 !important;
     }
     [data-testid="stSidebar"] div[role="radiogroup"] label:hover {
         border-color: #38bdf8 !important;
-        background-color: #20202a !important;
+        background-color: #222230 !important;
     }
     [data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
-        background-color: #22222e !important;
+        background-color: #1e293b !important;
         border-color: #38bdf8 !important;
+    }
+    [data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] p {
         color: #38bdf8 !important;
-        font-weight: bold !important;
+        font-weight: 700 !important;
     }
 
-    /* 3. AÇILIR MENÜ (EXPANDER) */
+    /* AÇILIR MENÜ (EXPANDER) */
     div[data-testid="stExpander"] {
         background-color: #18181e !important;
         border: 1px solid #2b2b36 !important;
@@ -85,7 +91,7 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* 4. BUTONLAR */
+    /* BUTONLAR */
     .stButton > button, .stDownloadButton > button {
         background-color: #1e1e28 !important;
         color: #ffffff !important;
@@ -101,7 +107,7 @@ st.markdown("""
         color: #38bdf8 !important;
     }
 
-    /* 5. SEKMELER (TABS) */
+    /* SEKMELER */
     .stTabs [data-baseweb="tab-list"] {
         background-color: #121216 !important;
         padding: 6px !important;
@@ -119,7 +125,7 @@ st.markdown("""
         border-bottom: 2px solid #38bdf8 !important;
     }
 
-    /* 6. TOOLTIP POP-UP MİMARİSİ */
+    /* HOVER TOOLTIP POP-UP MİMARİSİ */
     .tooltip-container {
         position: relative;
         display: block;
@@ -198,7 +204,7 @@ st.markdown("""
         padding: 2px 7px; border-radius: 4px;
     }
 
-    /* 7. ÖZEL MAT SİYAH TABLO */
+    /* ÖZEL MAT SİYAH TABLO */
     .fintables-container {
         width: 100%;
         max-height: 600px;
@@ -227,30 +233,36 @@ st.markdown("""
     .fintables-table tr:hover { background-color: #1e1e28; }
     .stock-logo {
         width: 22px; height: 22px; border-radius: 4px;
-        margin-right: 10px; vertical-align: middle; object-fit: contain;
+        margin-right: 10px; vertical-align: middle; object-fit: cover;
         background-color: #2a2a36;
+    }
+    .stock-avatar {
+        display: inline-block; width: 22px; height: 22px;
+        border-radius: 4px; margin-right: 10px; vertical-align: middle;
+        background-color: #38bdf8; color: #000000; font-weight: bold;
+        font-size: 11px; text-align: center; line-height: 22px;
     }
     .badge-pass { color: #34d399; font-weight: bold; }
     .badge-fail { color: #f87171; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Sermaye & Değerleme Terminali v11.0")
+st.title("🖤 Sermaye & Değerleme Terminali v12.0")
 st.caption("BİST & Küresel Piyasalar - Profesyonel Borsa Terminali")
 
-# --- TRADINGVIEW SEMBOL DÜZELTİCİ (MADDE 2 HATA FIX) ---
+# --- TRADINGVIEW SEMBOL DÜZELTİCİ ---
 def get_tradingview_symbol(hisse_kodu):
     clean_code = hisse_kodu.replace('.IS', '').upper().replace('-', '.')
     if '.IS' in hisse_kodu or hisse_kodu.endswith('.IS'):
         return f"BIST:{clean_code}"
     return clean_code
 
-# --- LOGO ADRESİ ---
+# --- DÜZELTİLMİŞ KARARLI LOGO APİSİ VE YEDEK MEKANİZMASI ---
 def get_stock_logo_url(hisse_kodu):
     clean_code = hisse_kodu.replace('.IS', '').upper()
     if '.IS' in hisse_kodu:
-        return f"https://s3-symbol-logo.tradingview.com/borsa-istanbul/{clean_code}.svg"
-    return f"https://s3-symbol-logo.tradingview.com/{clean_code.lower()}.svg"
+        return f"https://s3-symbol-logo.tradingview.com/borsa-istanbul/{clean_code}--big.svg"
+    return f"https://s3-symbol-logo.tradingview.com/{clean_code.lower()}--big.svg"
 
 def format_para(val):
     if val is None or pd.isna(val): return "N/A"
@@ -446,6 +458,7 @@ def render_karne_cards_with_tooltip(karne, degisimler):
     with c3: st.markdown(build_karne_tt("Borçluluk Karnesi", karne['borcluluk'], karne['borcluluk_detay']), unsafe_allow_html=True)
     with c4: st.markdown(build_degisim_tt(), unsafe_allow_html=True)
 
+# --- DÜZELTİLMİŞ TABLO VE YEDEK LOGO MEKANİZMASI ---
 def render_fintables_html_table(df, columns_map):
     if df.empty:
         st.warning("Gösterilecek veri bulunamadı.")
@@ -478,9 +491,11 @@ def render_fintables_html_table(df, columns_map):
         hisse_kodu = str(row['Hisse Kodu'])
         tam_kod = str(row.get('Tam Kod', hisse_kodu))
         logo_url = get_stock_logo_url(tam_kod)
+        short_avatar = hisse_kodu[:2]
 
         html += f'<tr><td>{idx}</td>'
-        html += f'<td><img src="{logo_url}" class="stock-logo" onerror="this.style.display=\'none\'"><b>{hisse_kodu}</b></td>'
+        # Resim yüklenemezse otomatik olarak Şık İlk İki Harf Avatarı gösterilir
+        html += f'<td><img src="{logo_url}" class="stock-logo" onerror="this.onerror=null; this.outerHTML=\'<span class=\\\'stock-avatar\\\'>{short_avatar}</span>\';"><b>{hisse_kodu}</b></td>'
 
         for col_key in columns_map.keys():
             val = row.get(col_key, 'N/A')
@@ -666,76 +681,73 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
         'Son FAVÖK': format_para(son_favok)
     }
 
-# --- SOL SIDEBAR MENÜSÜ (MADDE 3, 4 & 5 İYİLEŞTİRMELERİ) ---
+# --- SOL SIDEBAR MENÜSÜ ---
 st.sidebar.title("🎛️ Terminal Kontrolü")
 
-# MADDE 4: NUMARALANDIRMALAR KALDIRILDI ("🎯 Piyasa & Endeks Seçimi")
 with st.sidebar.expander("🎯 Piyasa & Endeks Seçimi", expanded=True):
-    # MADDE 3: Yuvarlak radyo noktaları kaldırıldı, şık buton kutularına dönüştürüldü
     piyasa_secimi = st.radio(
-        "Listenizi belirleyin:",
+        "Piyasa Seçimi:",
         ["BİST 30 (30 Hisse)", "BİST 100 (100 Hisse)", "BİST TÜM (150+ Hisse)", "S&P 500 (500 Hisse)", "NASDAQ 100 (100 Hisse)", "Özel Liste"],
-        label_visibility="collapsed"
+        index=0
     )
 
-# MADDE 5: AÇIKLAMA (TOOLTIP / HELP) SORU İŞARETLERİ GERİ GETİRİLDİ
 with st.sidebar.expander("📊 Temel Analiz Filtreleri", expanded=True):
     fk_aktif = st.checkbox(
         "F/K Filtresi", 
         value=True, 
-        help="Fiyat/Kazanç Oranı. Şirketin piyasa değerinin yıllık net kârına oranıdır. Şirketin kendini kaç yılda amorti ettiğini gösterir. Düşük F/K ucuzluğa işaret edebilir."
+        help="Fiyat/Kazanç Oranı. Şirketin kendini kaç yılda amorti ettiğini gösterir. Düşük F/K ucuzluğa işaret edebilir."
     )
-    max_fk = st.slider("Maksimum F/K", 1.0, 100.0, 35.0, 1.0, help="Belirlenen değerin üzerindeki aşırı pahalı veya fiyatlanmış hisseleri eleyerek riski azaltır.") if fk_aktif else 999.0
+    max_fk = st.slider("Maksimum F/K", 1.0, 100.0, 35.0, 1.0, help="Aşırı pahalı veya balon fiyatlanmış hisseleri eler.") if fk_aktif else 999.0
 
     peg_aktif = st.checkbox(
         "PEG Oranı Filtresi", 
         value=False, 
-        help="F/K oranının yıllık kâr büyüme hızına oranıdır. PEG < 1 olan şirketler, büyüme hızına göre oldukça ucuz kalmış kabul edilir."
+        help="F/K oranının kâr büyüme hızına oranıdır. PEG < 1 olan şirketler, büyümesine göre ucuz kabul edilir."
     )
-    max_peg = st.slider("Maksimum PEG", 0.1, 5.0, 1.5, 0.1, help="Büyümesini tamamlayamamış veya büyümesine göre pahalı kalmış hisseleri eler.") if peg_aktif else 999.0
+    max_peg = st.slider("Maksimum PEG", 0.1, 5.0, 1.5, 0.1, help="Büyümesine göre pahalı kalan hisseleri eler.") if peg_aktif else 999.0
 
     pddd_aktif = st.checkbox(
         "PD/DD Filtresi", 
         value=True, 
-        help="Piyasa Değeri / Defter Değeri. Şirketin borsa değerinin özkaynaklarına oranıdır. 1'in altı veya düşük çarpanlar varlıklarına göre ucuz olduğunu gösterir."
+        help="Piyasa Değeri / Defter Değeri. Şirketin borsa değerinin özkaynaklarına oranıdır."
     )
-    max_pddd = st.slider("Maksimum PD/DD", 0.5, 20.0, 10.0, 0.5, help="Varlıklarına göre aşırı köpük fiyatlanmış şirketleri filtreler.") if pddd_aktif else 999.0
+    max_pddd = st.slider("Maksimum PD/DD", 0.5, 20.0, 10.0, 0.5, help="Varlıklarına göre aşırı fiyatlanmış şirketleri eler.") if pddd_aktif else 999.0
 
     roe_aktif = st.checkbox(
         "ROE (Özkaynak Kârlılığı)", 
         value=True, 
-        help="Şirketin ortakların koyduğu sermaye ile ne kadar net kâr ürettiğini yüzde (%) olarak ölçer. Yüksek ROE, yönetimin sermayeyi verimli kullandığını gösterir."
+        help="Şirketin ortakların koyduğu sermaye ile ne kadar net kâr ürettiğini yüzde (%) olarak ölçer."
     )
-    min_roe = st.slider("Minimum ROE (%)", 0, 100, 10, 5, help="Sermayesini enflasyon karşısında eriten veya verimsiz çalışan şirketleri eler.") if roe_aktif else -999.0
+    min_roe = st.slider("Minimum ROE (%)", 0, 100, 10, 5, help="Sermayesini verimsiz kullanan şirketleri eler.") if roe_aktif else -999.0
 
     cari_oran_aktif = st.checkbox(
         "Cari Oran (Likidite)", 
         value=True, 
-        help="Dönen Varlıklar / Kısa Vadeli Borçlar. Şirketin 1 yıl içinde ödemesi gereken borçları nakit ve likit varlıklarıyla ödeme gücüdür. 1.5 ve üzeri sağlıklı kabul edilir."
+        help="Dönen Varlıklar / Kısa Vadeli Borçlar. 1.5 ve üzeri sağlıklı likiditeyi gösterir."
     )
-    min_cari_oran = st.slider("Minimum Cari Oran", 0.5, 5.0, 1.0, 0.1, help="Kısa vadeli borç ödeme krizi riski olan likiditesi zayıf şirketleri eler.") if cari_oran_aktif else 0.0
+    min_cari_oran = st.slider("Minimum Cari Oran", 0.5, 5.0, 1.0, 0.1, help="Borç ödeme krizi riski olan şirketleri eler.") if cari_oran_aktif else 0.0
 
     borc_aktif = st.checkbox(
         "Borç / Özkaynak Oranı", 
         value=False, 
-        help="Toplam Finansal Borç / Özkaynak. Şirketin borç yükünün özsermayeye oranını gösterir. Düşük oran borç krizlerine karşı koruma sağlar."
+        help="Toplam Finansal Borç / Özkaynak. Şirketin borç yükünün özsermayeye oranını gösterir."
     )
-    max_borc_ozkaynak = st.slider("Maksimum Borç/Özkaynak", 0.1, 10.0, 2.0, 0.1, help="Aşırı borç yükü altında ezilen riskli şirketleri eler.") if borc_aktif else 999.0
+    max_borc_ozkaynak = st.slider("Maksimum Borç/Özkaynak", 0.1, 10.0, 2.0, 0.1, help="Aşırı borçlu riskli şirketleri eler.") if borc_aktif else 999.0
 
     marj_aktif = st.checkbox(
         "Net Kâr Marjı (%)", 
         value=False, 
-        help="Net Kâr / Toplam Satışlar. Şirketin elde ettiği her 100 TL satıştan ne kadar net kâr bıraktığını gösterir. Yüksek marj rekabet gücünü simgeler."
+        help="Net Kâr / Toplam Satışlar. Şirketin her 100 TL satıştan ne kadar net kâr bıraktığını gösterir."
     )
-    min_net_marj = st.slider("Minimum Net Marj (%)", 0, 50, 5, 1, help="Cirosu yüksek ama kârlılığı çöp olan operasyonel olarak zayıf şirketleri eler.") if marj_aktif else -999.0
+    min_net_marj = st.slider("Minimum Net Marj (%)", 0, 50, 5, 1, help="Kârlılığı zayıf operasyonları olan şirketleri eler.") if marj_aktif else -999.0
 
 with st.sidebar.expander("⚡ Teknik Analiz Filtreleri", expanded=False):
     rsi_aktif = st.checkbox(
         "RSI (14) Filtresi", 
         value=True, 
-        help="Göreceli Güç Endeksi. 30 altı aşırı satım (fiyat fazla düşmüş/ucuz), 70 üstü aşırı alım (fiyat fazla yükselmiş/aşırı ısınmış) bölgesidir."
+        help="Göreceli Güç Endeksi. 30 altı ucuz/aşırı satım, 70 üstü pahalı/aşırı alımdır."
     )
-    rsi_araligi = st.slider("RSI Aralığı", 0, 100, (30, 70), help="Tepe noktada aşırı şişmiş veya dipte çöküşü devam eden hisseleri filtreler.") if rsi_aktif else (0, 100)
+    rsi_araligi = st.slider("RSI Aralığı", 0, 100, (30, 70)) if rsi_aktif else (0, 100)
 
 filtre_paketı = {
     'fk_aktif': fk_aktif, 'max_fk': max_fk, 'peg_aktif': peg_aktif, 'max_peg': max_peg,
@@ -788,7 +800,7 @@ else:
 
 st.sidebar.button("🔄 Verileri Yenile / Yeniden Tara", type="primary")
 
-# --- PARALEL TARAMA MOTORU ---
+# --- MADDE 2: ANINDA YÜKLENME (HAZIR ANLIK SONUÇ MOTORU) ---
 @st.cache_data(ttl=1800, show_spinner=False)
 def otomatık_paralel_tarama(hisse_listesi, filtreler):
     tum_sonuclar = []
@@ -804,9 +816,12 @@ def otomatık_paralel_tarama(hisse_listesi, filtreler):
         return df
     return pd.DataFrame()
 
-# Tarama Yürütücü
-with st.spinner(f"{len(secilen_hisseler)} hisse taranıyor..."):
-    df_tum_hisseler = otomatık_paralel_tarama(secilen_hisseler, filtre_paketı)
+# Oturum Hafızası ile Hızlı Yükleme
+if 'son_tarama_sonucu' not in st.session_state:
+    with st.spinner(f"{len(secilen_hisseler)} hisse taranıyor..."):
+        st.session_state['son_tarama_sonucu'] = otomatık_paralel_tarama(secilen_hisseler, filtre_paketı)
+
+df_tum_hisseler = st.session_state['son_tarama_sonucu']
 
 # --- ARAYÜZ ---
 tab_ana1, tab_ana2 = st.tabs(["📊 Terminal Süzgeç & Kategori Tablosu", "📈 Şirket Detayı, Canlı Grafik & Bilanço"])
@@ -881,7 +896,7 @@ with tab_ana1:
             })
             
         csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v11.csv", "text/csv")
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v12.csv", "text/csv")
 
 with tab_ana2:
     if not df_tum_hisseler.empty:
@@ -895,7 +910,6 @@ with tab_ana2:
             karne = hesapla_fintables_karne_detayli(fin, bal, info)
             degisimler = hesapla_fintables_detayli_degisimler(fin)
             
-            # MADDE 2: TRADINGVIEW GRAFİĞİ EN ÜSTE YERLEŞTİRİLDİ & SEMBOL DÜZELTİLDİ
             tv_symbol = get_tradingview_symbol(tam_kod)
             st.markdown(f"### 📈 {secilen_hisse} Canlı TradingView Grafiği")
             
@@ -927,7 +941,6 @@ with tab_ana2:
 
             st.markdown(f"## 🏢 {secilen_hisse} Finansal Karnesi ve Özeti")
             
-            # HOVER POP-UP DESTEKLİ KARNE KARTLARI
             render_karne_cards_with_tooltip(karne, degisimler)
             
             st.markdown("---")
@@ -969,3 +982,4 @@ with tab_ana2:
             with c_g1: ciz_koyu_cubuk_grafik(rev, "Çeyreklik Satışlar", "#38bdf8")
             with c_g2: ciz_koyu_cubuk_grafik(ebitda, "Çeyreklik FAVÖK", "#818cf8")
             with c_g3: ciz_koyu_cubuk_grafik(net_inc, "Çeyreklik Net Kâr", "#34d399")
+            
