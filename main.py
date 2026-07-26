@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore')
 
 # --- SAYFA YAPILANDIRMASI ---
 st.set_page_config(
-    page_title="Sermaye Terminali v15.0",
+    page_title="Sermaye Terminali v16.0",
     page_icon="🖤",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,7 +34,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* SOL MENÜ (SIDEBAR) - KUSURSUZ FINTABLES TARZI SEÇİM BARLARI */
+    /* SOL MENÜ (SIDEBAR) - FINTABLES TARZI SEÇİM BARLARI */
     [data-testid="stSidebar"] {
         background-color: #121216 !important;
         border-right: 1px solid #22222a !important;
@@ -58,7 +58,6 @@ st.markdown("""
         width: 100% !important;
         transition: all 0.2s ease !important;
     }
-    /* Radyo dairelerini ve inputlarını tamamen gizle, yazıyı net göster */
     [data-testid="stSidebar"] div[role="radiogroup"] input[type="radio"] {
         display: none !important;
     }
@@ -234,51 +233,10 @@ st.markdown("""
         background-color: rgba(148, 163, 184, 0.12);
         padding: 2px 7px; border-radius: 4px;
     }
-
-    /* ÖZEL MAT SİYAH TABLO */
-    .fintables-container {
-        width: 100%;
-        max-height: 600px;
-        overflow-y: auto;
-        border: 1px solid #262632;
-        border-radius: 8px;
-        background-color: #121216;
-        margin-bottom: 15px;
-    }
-    .fintables-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-size: 14px;
-        color: #ffffff;
-    }
-    .fintables-table th {
-        position: sticky; top: 0;
-        background-color: #181820; color: #a0a0ab;
-        font-weight: 600; text-align: left;
-        padding: 12px 16px; border-bottom: 1px solid #262632; z-index: 10;
-    }
-    .fintables-table td {
-        padding: 12px 16px; border-bottom: 1px solid #1e1e26; white-space: nowrap;
-    }
-    .fintables-table tr:hover { background-color: #1e1e28; }
-    .stock-logo {
-        width: 22px; height: 22px; border-radius: 4px;
-        margin-right: 10px; vertical-align: middle; object-fit: cover;
-        background-color: #2a2a36;
-    }
-    .stock-avatar {
-        display: inline-block; width: 22px; height: 22px;
-        border-radius: 4px; margin-right: 10px; vertical-align: middle;
-        background-color: #38bdf8; color: #000000; font-weight: bold;
-        font-size: 11px; text-align: center; line-height: 22px;
-    }
-    .badge-pass { color: #34d399; font-weight: bold; }
-    .badge-fail { color: #f87171; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Sermaye & Değerleme Terminali v15.0")
+st.title("🖤 Sermaye & Değerleme Terminali v16.0")
 st.caption("BİST & Küresel Piyasalar - Profesyonel Borsa Terminali")
 
 def get_tradingview_symbol(hisse_kodu):
@@ -286,12 +244,6 @@ def get_tradingview_symbol(hisse_kodu):
     if '.IS' in hisse_kodu or hisse_kodu.endswith('.IS'):
         return f"BIST:{clean_code}"
     return clean_code
-
-def get_stock_logo_url(hisse_kodu):
-    clean_code = hisse_kodu.replace('.IS', '').upper()
-    if '.IS' in hisse_kodu:
-        return f"https://s3-symbol-logo.tradingview.com/borsa-istanbul/{clean_code}--big.svg"
-    return f"https://s3-symbol-logo.tradingview.com/{clean_code.lower()}--big.svg"
 
 def format_para(val):
     if val is None or pd.isna(val): return "N/A"
@@ -486,63 +438,6 @@ def render_karne_cards_with_tooltip(karne, degisimler):
     with c3: st.markdown(build_karne_tt("Borçluluk Karnesi", karne['borcluluk'], karne['borcluluk_detay']), unsafe_allow_html=True)
     with c4: st.markdown(build_degisim_tt(), unsafe_allow_html=True)
 
-def render_fintables_html_table(df, columns_map):
-    if df.empty:
-        st.warning("Gösterilecek veri bulunamadı.")
-        return
-
-    col_descriptions = {
-        'Piyasa Değeri': 'Şirketin toplam hisse adedi x güncel fiyat.',
-        'Firma Değeri': 'Piyasa Değeri + Net Borç. Şirketin tüm borçlarıyla devralınma bedeli.',
-        'F/K': 'Fiyat / Kâr Oranı. Şirketin kendini kaç yılda amorti ettiği.',
-        'PD/DD': 'Piyasa Değeri / Defter Değeri.',
-        'PEG': 'F/K oranının kâr büyüme hızına oranı. < 1 ise ucuz kabul edilir.',
-        'ROE (%)': 'Özkaynak Kârlılığı. Şirketin özsermayesini büyütme hızı.',
-        'Net Marj (%)': 'Net Kâr / Satışlar oranı.',
-        'Cari Oran': 'Dönen Varlıklar / Kısa Vadeli Borçlar ( > 1.5 idealdir).',
-        'Borç/Özkaynak': 'Toplam Finansal Borç / Özkaynaklar.',
-        'RSI (14)': 'Göreceli Güç Endeksi (30 altı ucuz, 70 üstü aşırı alım).',
-        'Teknik Sinyal': 'RSI, MACD ve Desteğe yakınlık durumunun otomatik kararı.'
-    }
-
-    html = '<div class="fintables-container"><table class="fintables-table"><thead><tr>'
-    html += '<th style="width:50px;">#</th><th>Hisse</th>'
-    
-    for col_name in columns_map.values():
-        desc = col_descriptions.get(col_name, '')
-        title_attr = f'title="{desc}"' if desc else ''
-        html += f'<th {title_attr}>{col_name}</th>'
-    html += '</tr></thead><tbody>'
-
-    for idx, row in df.iterrows():
-        hisse_kodu = str(row['Hisse Kodu'])
-        tam_kod = str(row.get('Tam Kod', hisse_kodu))
-        logo_url = get_stock_logo_url(tam_kod)
-        short_avatar = hisse_kodu[:2]
-
-        html += f'<tr><td>{idx}</td>'
-        html += f'<td><img src="{logo_url}" class="stock-logo" onerror="this.onerror=null; this.outerHTML=\'<span class=\\\'stock-avatar\\\'>{short_avatar}</span>\';"><b>{hisse_kodu}</b></td>'
-
-        for col_key in columns_map.keys():
-            val = row.get(col_key, 'N/A')
-            if pd.isna(val) or val is None:
-                val = 'N/A'
-            elif col_key in ['ROE (%)', 'Net Marj (%)']:
-                val = f"%{val}"
-            
-            if col_key == 'Durum':
-                val_str = f'<span class="badge-pass">{val}</span>' if 'Geçti' in str(val) else f'<span class="badge-fail">{val}</span>'
-            elif col_key == 'Elenme Nedeni' and '❌' in str(val):
-                val_str = f'<span class="badge-fail">{val}</span>'
-            else:
-                val_str = str(val)
-
-            html += f'<td>{val_str}</td>'
-        html += '</tr>'
-
-    html += '</tbody></table></div>'
-    st.markdown(html, unsafe_allow_html=True)
-
 def ciz_koyu_cubuk_grafik(data_series, baslik, renk="#38bdf8"):
     if data_series is None or data_series.empty: return
     df_plot = pd.DataFrame({'Tarih': [str(x).split('T')[0] for x in data_series.iloc[:4][::-1].index], 'Değer': data_series.iloc[:4][::-1].values})
@@ -653,7 +548,6 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
     elenme_nedeni = "Başarılı"
     basarili_mi = True
 
-    # --- ONDALIK HASSASİYETİ KESİN SINIRLAMA (:.1f) ---
     if son_net_kar is None or pd.isna(son_net_kar) or son_net_kar <= 0:
         elenme_nedeni = "❌ Net Kâr Negatif"
         basarili_mi = False
@@ -725,29 +619,29 @@ with st.sidebar.expander("🎯 Piyasa & Endeks Seçimi", expanded=True):
     )
 
 with st.sidebar.expander("📊 Temel Analiz Filtreleri", expanded=True):
-    fk_aktif = st.checkbox("F/K Filtresi", value=True, help="Fiyat/Kazanç Oranı.")
+    fk_aktif = st.checkbox("F/K Filtresi", value=True)
     max_fk = st.slider("Maksimum F/K", 1.0, 100.0, 35.0, 1.0) if fk_aktif else 999.0
 
-    peg_aktif = st.checkbox("PEG Oranı Filtresi", value=False, help="F/K / Büyüme Oranı.")
+    peg_aktif = st.checkbox("PEG Oranı Filtresi", value=False)
     max_peg = st.slider("Maksimum PEG", 0.1, 5.0, 1.5, 0.1) if peg_aktif else 999.0
 
-    pddd_aktif = st.checkbox("PD/DD Filtresi", value=True, help="Piyasa Değeri / Defter Değeri.")
+    pddd_aktif = st.checkbox("PD/DD Filtresi", value=True)
     max_pddd = st.slider("Maksimum PD/DD", 0.5, 20.0, 10.0, 0.5) if pddd_aktif else 999.0
 
-    roe_aktif = st.checkbox("ROE (Özkaynak Kârlılığı)", value=True, help="Özkaynak kârlılığı yüzdesi.")
+    roe_aktif = st.checkbox("ROE (Özkaynak Kârlılığı)", value=True)
     min_roe = st.slider("Minimum ROE (%)", 0, 100, 10, 5) if roe_aktif else -999.0
 
-    cari_oran_aktif = st.checkbox("Cari Oran (Likidite)", value=True, help="Dönen Varlıklar / Kısa Vadeli Borçlar.")
+    cari_oran_aktif = st.checkbox("Cari Oran (Likidite)", value=True)
     min_cari_oran = st.slider("Minimum Cari Oran", 0.5, 5.0, 1.0, 0.1) if cari_oran_aktif else 0.0
 
-    borc_aktif = st.checkbox("Borç / Özkaynak Oranı", value=False, help="Finansal Borç / Özkaynak.")
+    borc_aktif = st.checkbox("Borç / Özkaynak Oranı", value=False)
     max_borc_ozkaynak = st.slider("Maksimum Borç/Özkaynak", 0.1, 10.0, 2.0, 0.1) if borc_aktif else 999.0
 
-    marj_aktif = st.checkbox("Net Kâr Marjı (%)", value=False, help="Net Kâr / Satışlar.")
+    marj_aktif = st.checkbox("Net Kâr Marjı (%)", value=False)
     min_net_marj = st.slider("Minimum Net Marj (%)", 0, 50, 5, 1) if marj_aktif else -999.0
 
 with st.sidebar.expander("⚡ Teknik Analiz Filtreleri", expanded=False):
-    rsi_aktif = st.checkbox("RSI (14) Filtresi", value=True, help="Göreceli Güç Endeksi.")
+    rsi_aktif = st.checkbox("RSI (14) Filtresi", value=True)
     rsi_araligi = st.slider("RSI Aralığı", 0, 100, (30, 70)) if rsi_aktif else (0, 100)
 
 filtre_paketı = {
@@ -758,7 +652,6 @@ filtre_paketı = {
     'rsi_aktif': rsi_aktif, 'rsi_min': rsi_araligi[0], 'rsi_max': rsi_araligi[1]
 }
 
-# HİSSE LİSTELERİ
 bist_100_tam = [
     'AKBNK.IS', 'ALARK.IS', 'ARCLK.IS', 'ASELS.IS', 'BIMAS.IS', 'BRSAN.IS', 'EKGYO.IS', 'ENKAI.IS', 'EREGL.IS', 'FROTO.IS',
     'GARAN.IS', 'GUBRF.IS', 'HEKTS.IS', 'ISCTR.IS', 'KCHOL.IS', 'KONTR.IS', 'KOZAL.IS', 'MGROS.IS', 'ODAS.IS', 'PETKM.IS',
@@ -825,8 +718,12 @@ if yenile_tiklandi or 'mevcut_cache_key' not in st.session_state or st.session_s
 
 df_tum_hisseler = st.session_state['son_tarama_sonucu']
 
-# --- ARAYÜZ ---
-tab_ana1, tab_ana2 = st.tabs(["📊 Terminal Süzgeç & Kategori Tablosu", "📈 Şirket Detayı, Canlı Grafik & Bilanço"])
+# Oturumda seçilen hisse yönetimi
+if 'secilen_aktif_hisse' not in st.session_state:
+    st.session_state['secilen_aktif_hisse'] = None
+
+# --- ANA EKRAN SEKMELERİ (TABLOSAL GÖRÜNÜM vs ÖZEL HİSSE SAYFASI) ---
+tab_ana1, tab_ana2 = st.tabs(["📊 Terminal Süzgeç & Kategori Tablosu", "📈 Şirket Detay, Canlı Grafik & Bilanço"])
 
 with tab_ana1:
     if not df_tum_hisseler.empty:
@@ -842,7 +739,8 @@ with tab_ana1:
         c3.metric("Elenen Hisse", len(df_elenenler))
         
         st.markdown("<br>", unsafe_allow_html=True)
-        
+        st.info("💡 **İpucu:** Aşağıdaki tablolarda herhangi bir şirketin **satırına tıklayarak** o hisseye özel detay sayfasına anında geçiş yapabilirsiniz.")
+
         kat_degerleme, kat_karlilik, kat_borcluluk, kat_teknik, kat_elenenler = st.tabs([
             "🏷️ Değerleme", 
             "💰 Kârlılık", 
@@ -851,58 +749,64 @@ with tab_ana1:
             f"❌ Elenenler ({len(df_elenenler)})"
         ])
 
+        def render_clickable_dataframe(df_source, cols):
+            if df_source.empty:
+                st.warning("Gösterilecek veri bulunamadı.")
+                return
+            
+            # Görüntülenecek sütunlar
+            gosterim_df = df_source[['Hisse Kodu'] + cols].copy()
+            
+            event = st.dataframe(
+                gosterim_df,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row"
+            )
+            
+            if event.selection.rows:
+                selected_row_idx = event.selection.rows[0]
+                tiklanan_hisse = df_source.iloc[selected_row_idx]['Hisse Kodu']
+                st.session_state['secilen_aktif_hisse'] = tiklanan_hisse
+                st.success(f"🎯 **{tiklanan_hisse}** seçildi! Üst sekmeden **'Şirket Detay, Canlı Grafik & Bilanço'** sayfasına geçiliyor...")
+                st.rerun()
+
         with kat_degerleme:
-            st.caption("Süzgeçten geçen şirketlerin piyasa değerleri ve değerleme çarpanları:")
-            render_fintables_html_table(df_gecenler, {
-                'Piyasa Değeri': 'Piyasa Değeri',
-                'Firma Değeri': 'Firma Değeri',
-                'F/K': 'F/K',
-                'PD/DD': 'PD/DD',
-                'PEG': 'PEG'
-            })
+            st.caption("Süzgeçten geçen şirketlerin piyasa değerleri ve değerleme çarpanları (Tıklayarak inceleyin):")
+            render_clickable_dataframe(df_gecenler, ['Piyasa Değeri', 'Firma Değeri', 'F/K', 'PD/DD', 'PEG'])
 
         with kat_karlilik:
             st.caption("Özkaynak Kârlılığı (ROE), Net Marj, Net Kâr ve FAVÖK büyüklükleri:")
-            render_fintables_html_table(df_gecenler, {
-                'Temel Skor': 'Temel Skor',
-                'ROE (%)': 'ROE (%)',
-                'Net Marj (%)': 'Net Marj (%)',
-                'Son Net Kâr': 'Son Net Kâr',
-                'Son FAVÖK': 'Son FAVÖK'
-            })
+            render_clickable_dataframe(df_gecenler, ['Temel Skor', 'ROE (%)', 'Net Marj (%)', 'Son Net Kâr', 'Son FAVÖK'])
 
         with kat_borcluluk:
             st.caption("Cari Oran (Likidite) ve Borç/Özkaynak oranları:")
-            render_fintables_html_table(df_gecenler, {
-                'Temel Skor': 'Temel Skor',
-                'Cari Oran': 'Cari Oran',
-                'Borç/Özkaynak': 'Borç/Özkaynak'
-            })
+            render_clickable_dataframe(df_gecenler, ['Temel Skor', 'Cari Oran', 'Borç/Özkaynak'])
 
         with kat_teknik:
             st.caption("Teknik Alım Sinyali, RSI (14) ve MACD Trend Durumu:")
-            render_fintables_html_table(df_gecenler, {
-                'Teknik Sinyal': 'Teknik Sinyal',
-                'RSI (14)': 'RSI (14)',
-                'MACD Trend': 'MACD Trend'
-            })
+            render_clickable_dataframe(df_gecenler, ['Teknik Sinyal', 'RSI (14)', 'MACD Trend'])
 
         with kat_elenenler:
             st.caption("Süzgeçten geçemeyen şirketler ve elenme gerekçeleri:")
-            render_fintables_html_table(df_elenenler, {
-                'Elenme Nedeni': 'Elenme Nedeni',
-                'Piyasa Değeri': 'Piyasa Değeri',
-                'F/K': 'F/K',
-                'ROE (%)': 'ROE (%)',
-                'Cari Oran': 'Cari Oran'
-            })
+            render_clickable_dataframe(df_elenenler, ['Elenme Nedeni', 'Piyasa Değeri', 'F/K', 'ROE (%)', 'Cari Oran'])
             
         csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v15.csv", "text/csv")
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_terminal_v16.csv", "text/csv")
 
 with tab_ana2:
     if not df_tum_hisseler.empty:
-        secilen_hisse = st.selectbox("İncelemek İstediğiniz Şirketi Seçin (Tüm Hisseler):", df_tum_hisseler['Hisse Kodu'].tolist())
+        hisse_listesi = df_tum_hisseler['Hisse Kodu'].tolist()
+        
+        # Eğer tablodan tıklanmış bir hisse varsa varsayılan olarak onu seç
+        default_index = 0
+        if st.session_state['secilen_aktif_hisse'] in hisse_listesi:
+            default_index = hisse_listesi.index(st.session_state['secilen_aktif_hisse'])
+
+        secilen_hisse = st.selectbox("İncelemek İstediğiniz Şirketi Seçin:", hisse_listesi, index=default_index)
+        st.session_state['secilen_aktif_hisse'] = secilen_hisse
+
         hisse_row = df_tum_hisseler[df_tum_hisseler['Hisse Kodu'] == secilen_hisse].iloc[0]
         tam_kod = hisse_row['Tam Kod']
         
