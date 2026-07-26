@@ -9,15 +9,15 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-# --- SAYFA YAPILANDIRMASI & KUSURSUZ FINTABLES MAT SİYAH TEMA ---
+# --- SAYFA YAPILANDIRMASI & KUSURSUZ MAT SİYAH TEMA ---
 st.set_page_config(
-    page_title="Sermaye Terminali v9.0 Logo Engine",
+    page_title="Sermaye Terminali v10.0 Tooltip Engine",
     page_icon="🖤",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# FINTABLES BİREBİR DARK CSS OVERRIDE
+# MAT SİYAH + HOVER TOOLTIP POP-UP CSS
 st.markdown("""
     <style>
     /* 1. Ana Arka Plan */
@@ -76,7 +76,7 @@ st.markdown("""
         color: #38bdf8 !important;
     }
 
-    /* 5. Sekme (Tab) Metin Okunabilirliği */
+    /* 5. Sekme (Tab) Metinleri */
     .stTabs [data-baseweb="tab-list"] {
         background-color: #121216 !important;
         padding: 6px !important;
@@ -94,12 +94,99 @@ st.markdown("""
         border-bottom: 2px solid #38bdf8 !important;
     }
 
-    /* 6. FINTABLES STİL ÖZEL MAT SİYAH TABLO CSS */
+    /* 6. HOVER TOOLTIP POP-UP MİMARİSİ */
+    .tooltip-container {
+        position: relative;
+        display: block;
+        cursor: pointer;
+        width: 100%;
+    }
+    .fintables-card-tt {
+        background-color: #16161c;
+        border: 1px solid #262632;
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: all 0.2s ease;
+    }
+    .fintables-card-tt:hover {
+        border-color: #38bdf8;
+        background-color: #1a1a22;
+    }
+    
+    /* Pop-Up Pencere */
+    .tooltip-container .tooltip-box {
+        visibility: hidden;
+        width: 320px;
+        background-color: #14141a;
+        color: #ffffff;
+        text-align: left;
+        border-radius: 8px;
+        padding: 12px 14px;
+        border: 1px solid #333348;
+        box-shadow: 0px 10px 25px rgba(0,0,0,0.85);
+        position: absolute;
+        z-index: 1000;
+        bottom: 105%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+        font-size: 0.83rem;
+        line-height: 1.5;
+    }
+    .tooltip-container .tooltip-box::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -6px;
+        border-width: 6px;
+        border-style: solid;
+        border-color: #14141a transparent transparent transparent;
+    }
+    .tooltip-container:hover .tooltip-box {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .tt-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        border-bottom: 1px solid #22222e;
+    }
+    .tt-row:last-child { border-bottom: none; }
+    .tt-label { color: #a0a0ab; font-weight: 500; }
+    .tt-val-pos {
+        color: #34d399;
+        font-weight: bold;
+        background-color: rgba(52, 211, 153, 0.12);
+        padding: 2px 7px;
+        border-radius: 4px;
+        border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+    .tt-val-neg {
+        color: #f87171;
+        font-weight: bold;
+        background-color: rgba(248, 113, 113, 0.12);
+        padding: 2px 7px;
+        border-radius: 4px;
+        border: 1px solid rgba(248, 113, 113, 0.3);
+    }
+    .tt-val-neutral {
+        color: #94a3b8;
+        font-weight: bold;
+        background-color: rgba(148, 163, 184, 0.12);
+        padding: 2px 7px;
+        border-radius: 4px;
+    }
+
+    /* 7. ÖZEL MAT SİYAH TABLO */
     .fintables-container {
         width: 100%;
         max-height: 650px;
         overflow-y: auto;
-        overflow-x: auto;
         border: 1px solid #262632;
         border-radius: 8px;
         background-color: #121216;
@@ -128,16 +215,11 @@ st.markdown("""
         border-bottom: 1px solid #1e1e26;
         white-space: nowrap;
     }
-    .fintables-table tr:hover {
-        background-color: #1e1e28;
-    }
+    .fintables-table tr:hover { background-color: #1e1e28; }
     .stock-logo {
-        width: 22px;
-        height: 22px;
-        border-radius: 4px;
-        margin-right: 10px;
-        vertical-align: middle;
-        object-fit: contain;
+        width: 22px; height: 22px;
+        border-radius: 4px; margin-right: 10px;
+        vertical-align: middle; object-fit: contain;
         background-color: #2a2a36;
     }
     .badge-pass { color: #34d399; font-weight: bold; }
@@ -145,17 +227,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Sermaye & Değerleme Terminali v9.0")
-st.caption("BİST & Küresel Piyasalar - Logolu Mat Siyah Fintables Borsa Ekranı")
+st.title("🖤 Sermaye & Değerleme Terminali v10.0")
+st.caption("BİST & Küresel Piyasalar - Fintables Stil Hover Pop-up & Tooltip Destekli Terminal")
 
-# --- HİSSE LOGO ADRESİ OLUŞTURUCU ---
+# --- HİSSE LOGO ADRESİ ---
 def get_stock_logo_url(hisse_kodu):
     clean_code = hisse_kodu.replace('.IS', '').upper()
     if '.IS' in hisse_kodu:
         return f"https://s3-symbol-logo.tradingview.com/borsa-istanbul/{clean_code}.svg"
     return f"https://s3-symbol-logo.tradingview.com/{clean_code.lower()}.svg"
 
-# --- MİLYAR / MİLYON FORMATLAMA ---
+# --- FORMATLAMA ---
 def format_para(val):
     if val is None or pd.isna(val): return "N/A"
     abs_v = abs(val)
@@ -163,17 +245,226 @@ def format_para(val):
     elif abs_v >= 1e6: return f"{val / 1e6:.2f} mn"
     return f"{val:,.0f}"
 
-# --- FINTABLES STİL HTML TABLO RENDER EDİCİ ---
+# --- VERİ ÇEKME MOTORU ---
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_full_stock_data(hisse_kodu):
+    try:
+        formatted_code = hisse_kodu.replace('.', '-') if not hisse_kodu.endswith('.IS') else hisse_kodu
+        ticker = yf.Ticker(formatted_code)
+        financials = ticker.quarterly_financials
+        balance_sheet = ticker.quarterly_balance_sheet
+        info = ticker.info or {}
+        history = ticker.history(period="1y")
+        return financials, balance_sheet, info, history
+    except Exception:
+        return None, None, None, None
+
+def get_row(df, possible_keys):
+    if df is None or df.empty: return None
+    for k in possible_keys:
+        if k in df.index: return df.loc[k]
+    return None
+
+# --- DETAYLI DEĞİŞİM VE MARJ HESAPLAMA (bps & %) ---
+def hesapla_fintables_detayli_degisimler(financials):
+    rev_s = get_row(financials, ['Total Revenue', 'Operating Revenue'])
+    gross_s = get_row(financials, ['Gross Profit'])
+    ebitda_s = get_row(financials, ['EBITDA', 'Normalized EBITDA', 'Operating Income'])
+    net_inc_s = get_row(financials, ['Net Income', 'Net Income Common Stockholders'])
+
+    degisimler = {
+        'satis_yillik': 'N/A', 'satis_ceyreklik': 'N/A',
+        'favok_yillik': 'N/A', 'favok_ceyreklik': 'N/A',
+        'net_kar_yillik': 'N/A', 'net_kar_ceyreklik': 'N/A',
+        'net_marj_yillik_bps': 'N/A', 'net_marj_ceyreklik_bps': 'N/A',
+        'brut_marj_yillik_bps': 'N/A', 'brut_marj_ceyreklik_bps': 'N/A',
+        'favok_marj_yillik_bps': 'N/A', 'favok_marj_ceyreklik_bps': 'N/A',
+    }
+
+    if rev_s is not None and len(rev_s) >= 4:
+        r0, r1, r3 = rev_s.iloc[0], rev_s.iloc[1], rev_s.iloc[3]
+        if r3 and r3 != 0: degisimler['satis_yillik'] = f"%{(r0 - r3) / abs(r3) * 100:+.1f}"
+        if r1 and r1 != 0: degisimler['satis_ceyreklik'] = f"%{(r0 - r1) / abs(r1) * 100:+.1f}"
+
+        if ebitda_s is not None and len(ebitda_s) >= 4:
+            e0, e1, e3 = ebitda_s.iloc[0], ebitda_s.iloc[1], ebitda_s.iloc[3]
+            if e3 and e3 != 0: degisimler['favok_yillik'] = f"%{(e0 - e3) / abs(e3) * 100:+.1f}"
+            if e1 and e1 != 0: degisimler['favok_ceyreklik'] = f"%{(e0 - e1) / abs(e1) * 100:+.1f}"
+
+            m0 = (e0 / r0) * 100 if r0 else 0
+            m1 = (e1 / r1) * 100 if r1 else 0
+            m3 = (e3 / r3) * 100 if r3 else 0
+            degisimler['favok_marj_yillik_bps'] = f"{int((m0 - m3) * 100):+} bps"
+            degisimler['favok_marj_ceyreklik_bps'] = f"{int((m0 - m1) * 100):+} bps"
+
+        if gross_s is not None and len(gross_s) >= 4:
+            g0, g1, g3 = gross_s.iloc[0], gross_s.iloc[1], gross_s.iloc[3]
+            bm0 = (g0 / r0) * 100 if r0 else 0
+            bm1 = (g1 / r1) * 100 if r1 else 0
+            bm3 = (g3 / r3) * 100 if r3 else 0
+            degisimler['brut_marj_yillik_bps'] = f"{int((bm0 - bm3) * 100):+} bps"
+            degisimler['brut_marj_ceyreklik_bps'] = f"{int((bm0 - bm1) * 100):+} bps"
+
+        if net_inc_s is not None and len(net_inc_s) >= 4:
+            n0, n1, n3 = net_inc_s.iloc[0], net_inc_s.iloc[1], net_inc_s.iloc[3]
+            if n3 and n3 != 0: degisimler['net_kar_yillik'] = f"%{(n0 - n3) / abs(n3) * 100:+.1f}"
+            if n1 and n1 != 0: degisimler['net_kar_ceyreklik'] = f"%{(n0 - n1) / abs(n1) * 100:+.1f}"
+            nm0 = (n0 / r0) * 100 if r0 else 0
+            nm1 = (n1 / r1) * 100 if r1 else 0
+            nm3 = (n3 / r3) * 100 if r3 else 0
+            degisimler['net_marj_yillik_bps'] = f"{int((nm0 - nm3) * 100):+} bps"
+            degisimler['net_marj_ceyreklik_bps'] = f"{int((nm0 - nm1) * 100):+} bps"
+
+    return degisimler
+
+# --- DETAYLI KARNE HESAPLAMA (DETAY LİSTELİ) ---
+def hesapla_fintables_karne_detayli(financials, balance_sheet, info):
+    karlilik_detay, buyume_detay, borcluluk_detay = [], [], []
+
+    rev_series = get_row(financials, ['Total Revenue', 'Operating Revenue'])
+    net_inc_series = get_row(financials, ['Net Income', 'Net Income Common Stockholders'])
+    ebitda_series = get_row(financials, ['EBITDA', 'Normalized EBITDA', 'Operating Income'])
+    
+    curr_assets = get_row(balance_sheet, ['Current Assets'])
+    curr_liab = get_row(balance_sheet, ['Current Liabilities'])
+    total_debt = get_row(balance_sheet, ['Total Debt', 'Financial Debt'])
+    cash = get_row(balance_sheet, ['Cash And Cash Equivalents'])
+    total_assets = get_row(balance_sheet, ['Total Assets'])
+
+    ca_val = curr_assets.iloc[0] if curr_assets is not None and not curr_assets.empty else 0
+    cl_val = curr_liab.iloc[0] if curr_liab is not None and not curr_liab.empty else 0
+    td_val = total_debt.iloc[0] if total_debt is not None and not total_debt.empty else 0
+    cash_val = cash.iloc[0] if cash is not None and not cash.empty else 0
+    ta_val = total_assets.iloc[0] if total_assets is not None and not total_assets.empty else 1
+
+    net_borc = td_val - cash_val
+    isletme_sermayesi = ca_val - cl_val
+    fin_borcluluk_orani = (td_val / ta_val) * 100 if ta_val else 0
+    cari_oran = (ca_val / cl_val) if cl_val else 0
+
+    # Borçluluk
+    borcluluk_detay.append(("İşletme Sermayesi > 0", isletme_sermayesi > 0))
+    borcluluk_detay.append(("Finansal Borçluluk < %50", fin_borcluluk_orani < 50))
+    borcluluk_detay.append(("Net Borç < 0 (Nakit Fazlası)", net_borc < 0))
+    borcluluk_detay.append(("Dönen Varlıklar > Finansal Borç", ca_val > td_val))
+    borcluluk_detay.append(("Cari Oran > 1.5", cari_oran > 1.5))
+    borcluluk_detay.append(("Düşük Finansal Borç Riski", fin_borcluluk_orani < 30 or net_borc < 0))
+
+    # Kârlılık
+    roe = (info.get('returnOnEquity') or 0) * 100
+    net_marj = (info.get('profitMargins') or 0) * 100
+    op_marj = (info.get('operatingMargins') or 0) * 100
+
+    karlilik_detay.append(("Özkaynak Kârlılığı (ROE) > %20", roe > 20))
+    karlilik_detay.append(("Özkaynak Kârlılığı (ROE) > %10", roe > 10))
+    karlilik_detay.append(("Net Kâr Marjı > %15", net_marj > 15))
+    karlilik_detay.append(("Net Kâr Marjı > %5", net_marj > 5))
+    karlilik_detay.append(("Faaliyet Marjı > %10", op_marj > 10))
+    karlilik_detay.append(("Brüt Kâr Marjı > %15", (info.get('grossMargins') or 0) * 100 > 15))
+
+    # Büyüme
+    buyume_detay.append(("Satışlar Çeyreklik Artış", rev_series is not None and len(rev_series) >= 2 and rev_series.iloc[0] > rev_series.iloc[1]))
+    buyume_detay.append(("Satışlar Yıllık Artış", rev_series is not None and len(rev_series) >= 4 and rev_series.iloc[0] > rev_series.iloc[3]))
+    buyume_detay.append(("FAVÖK Çeyreklik Artış", ebitda_series is not None and len(ebitda_series) >= 2 and ebitda_series.iloc[0] > ebitda_series.iloc[1]))
+    buyume_detay.append(("FAVÖK Yıllık Artış", ebitda_series is not None and len(ebitda_series) >= 4 and ebitda_series.iloc[0] > ebitda_series.iloc[3]))
+    buyume_detay.append(("Net Kâr Çeyreklik Artış", net_inc_series is not None and len(net_inc_series) >= 2 and net_inc_series.iloc[0] > net_inc_series.iloc[1]))
+    buyume_detay.append(("Net Kâr Yıllık Artış", net_inc_series is not None and len(net_inc_series) >= 4 and net_inc_series.iloc[0] > net_inc_series.iloc[3]))
+
+    return {
+        'karlilik': sum(1 for _, v in karlilik_detay if v),
+        'buyume': sum(1 for _, v in buyume_detay if v),
+        'borcluluk': sum(1 for _, v in borcluluk_detay if v),
+        'karlilik_detay': karlilik_detay,
+        'buyume_detay': buyume_detay,
+        'borcluluk_detay': borcluluk_detay
+    }
+
+# --- HOVER POP-UP KARTLARI RENDER EDİCİ ---
+def render_karne_cards_with_tooltip(karne, degisimler):
+    def build_karne_tt(title, skor, detay_list):
+        items_html = ""
+        for name, val in detay_list:
+            icon = '<span style="color:#34d399;font-weight:bold;">✓</span>' if val else '<span style="color:#f87171;font-weight:bold;">✗</span>'
+            items_html += f'<div class="tt-row"><span class="tt-label">{name}</span>{icon}</div>'
+        
+        return f'''
+        <div class="tooltip-container">
+            <div class="fintables-card-tt">
+                <div style="color:#a0a0ab;font-size:0.85rem;">{title}</div>
+                <div style="color:#38bdf8;font-weight:700;font-size:1.6rem;margin-top:2px;">{skor} / 6</div>
+            </div>
+            <div class="tooltip-box">
+                <div style="font-weight:bold;margin-bottom:6px;border-bottom:1px solid #333344;padding-bottom:4px;color:#38bdf8;">
+                    {title} Kriterleri ({skor}/6)
+                </div>
+                {items_html}
+            </div>
+        </div>
+        '''
+
+    def build_degisim_tt():
+        def fmt_val(v_str):
+            if v_str == 'N/A': return f'<span class="tt-val-neutral">{v_str}</span>'
+            if '-' in str(v_str): return f'<span class="tt-val-neg">{v_str}</span>'
+            return f'<span class="tt-val-pos">{v_str}</span>'
+
+        return f'''
+        <div class="tooltip-container">
+            <div class="fintables-card-tt" style="border-color:#38bdf8;">
+                <div style="color:#a0a0ab;font-size:0.85rem;">🔍 Değişim & Marj Analizi</div>
+                <div style="color:#38bdf8;font-weight:700;font-size:1.1rem;margin-top:6px;">💬 Fareyi Getir</div>
+            </div>
+            <div class="tooltip-box" style="width:310px;">
+                <div style="font-weight:bold;margin-bottom:6px;border-bottom:1px solid #333344;padding-bottom:4px;color:#38bdf8;">
+                    Çeyreklik & Yıllık Marj Değişimleri
+                </div>
+                <div class="tt-row"><span class="tt-label">Satışlar Yıllık Değişim</span>{fmt_val(degisimler['satis_yillik'])}</div>
+                <div class="tt-row"><span class="tt-label">Satışlar Çeyreklik Değişim</span>{fmt_val(degisimler['satis_ceyreklik'])}</div>
+                <div class="tt-row"><span class="tt-label">FAVÖK Yıllık Değişim</span>{fmt_val(degisimler['favok_yillik'])}</div>
+                <div class="tt-row"><span class="tt-label">FAVÖK Çeyreklik Değişim</span>{fmt_val(degisimler['favok_ceyreklik'])}</div>
+                <div class="tt-row"><span class="tt-label">Brüt Kar Marjı Yıllık Değişim</span>{fmt_val(degisimler['brut_marj_yillik_bps'])}</div>
+                <div class="tt-row"><span class="tt-label">Brüt Kar Marjı Çeyreklik Değişim</span>{fmt_val(degisimler['brut_marj_ceyreklik_bps'])}</div>
+                <div class="tt-row"><span class="tt-label">FAVÖK Marjı Yıllık Değişim</span>{fmt_val(degisimler['favok_marj_yillik_bps'])}</div>
+                <div class="tt-row"><span class="tt-label">FAVÖK Marjı Çeyreklik Değişim</span>{fmt_val(degisimler['favok_marj_ceyreklik_bps'])}</div>
+                <div class="tt-row"><span class="tt-label">Net Kar Marjı Yıllık Değişim</span>{fmt_val(degisimler['net_marj_yillik_bps'])}</div>
+                <div class="tt-row"><span class="tt-label">Net Kar Marjı Çeyreklik Değişim</span>{fmt_val(degisimler['net_marj_ceyreklik_bps'])}</div>
+            </div>
+        </div>
+        '''
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.markdown(build_karne_tt("Kârlılık Karnesi", karne['karlilik'], karne['karlilik_detay']), unsafe_allow_html=True)
+    with c2: st.markdown(build_karne_tt("Büyüme Karnesi", karne['buyume'], karne['buyume_detay']), unsafe_allow_html=True)
+    with c3: st.markdown(build_karne_tt("Borçluluk Karnesi", karne['borcluluk'], karne['borcluluk_detay']), unsafe_allow_html=True)
+    with c4: st.markdown(build_degisim_tt(), unsafe_allow_html=True)
+
+# --- FINTABLES TABLO RENDER EDİCİ ---
 def render_fintables_html_table(df, columns_map):
     if df.empty:
         st.warning("Gösterilecek veri bulunamadı.")
         return
 
+    col_descriptions = {
+        'Piyasa Değeri': 'Şirketin toplam hisse adedi x güncel fiyat.',
+        'Firma Değeri': 'Piyasa Değeri + Net Borç. Şirketin tüm borçlarıyla devralınma bedeli.',
+        'F/K': 'Fiyat / Kâr Oranı. Şirketin kendini kaç yılda amorti ettiği.',
+        'PD/DD': 'Piyasa Değeri / Defter Değeri.',
+        'PEG': 'F/K oranının kâr büyüme hızına oranı. < 1 ise ucuz kabul edilir.',
+        'ROE (%)': 'Özkaynak Kârlılığı. Şirketin özsermayesini büyütme hızı.',
+        'Net Marj (%)': 'Net Kâr / Satışlar oranı.',
+        'Cari Oran': 'Dönen Varlıklar / Kısa Vadeli Borçlar ( > 1.5 idealdir).',
+        'Borç/Özkaynak': 'Toplam Finansal Borç / Özkaynaklar.',
+        'RSI (14)': 'Göreceli Güç Endeksi (30 altı ucuz, 70 üstü aşırı alım).',
+        'Teknik Sinyal': 'RSI, MACD ve Desteğe yakınlık durumunun otomatik kararı.'
+    }
+
     html = '<div class="fintables-container"><table class="fintables-table"><thead><tr>'
     html += '<th style="width:50px;">#</th><th>Hisse</th>'
     
     for col_name in columns_map.values():
-        html += f'<th>{col_name}</th>'
+        desc = col_descriptions.get(col_name, '')
+        title_attr = f'title="{desc}"' if desc else ''
+        html += f'<th {title_attr}>{col_name}</th>'
     html += '</tr></thead><tbody>'
 
     for idx, row in df.iterrows():
@@ -191,7 +482,6 @@ def render_fintables_html_table(df, columns_map):
             elif col_key in ['ROE (%)', 'Net Marj (%)']:
                 val = f"%{val}"
             
-            # Durum / Elenme Renklendirme
             if col_key == 'Durum':
                 val_str = f'<span class="badge-pass">{val}</span>' if 'Geçti' in str(val) else f'<span class="badge-fail">{val}</span>'
             elif col_key == 'Elenme Nedeni' and '❌' in str(val):
@@ -218,26 +508,6 @@ def ciz_koyu_cubuk_grafik(data_series, baslik, renk="#38bdf8"):
         yaxis=dict(showgrid=True, gridcolor="#262632", tickfont=dict(color="#a0a0ab"))
     )
     st.plotly_chart(fig, use_container_width=True)
-
-# --- VERİ ÇEKME MOTORU ---
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_full_stock_data(hisse_kodu):
-    try:
-        formatted_code = hisse_kodu.replace('.', '-') if not hisse_kodu.endswith('.IS') else hisse_kodu
-        ticker = yf.Ticker(formatted_code)
-        financials = ticker.quarterly_financials
-        balance_sheet = ticker.quarterly_balance_sheet
-        info = ticker.info or {}
-        history = ticker.history(period="1y")
-        return financials, balance_sheet, info, history
-    except Exception:
-        return None, None, None, None
-
-def get_row(df, possible_keys):
-    if df is None or df.empty: return None
-    for k in possible_keys:
-        if k in df.index: return df.loc[k]
-    return None
 
 def hesapla_temel_skor(info):
     skor = 0
@@ -278,58 +548,6 @@ def hesapla_temel_skor(info):
     elif marj > 5: skor += 3
 
     return min(skor, 100)
-
-def hesapla_fintables_karne(financials, balance_sheet, info):
-    karlilik_skor = 0
-    buyume_skor = 0
-    borcluluk_skor = 0
-    
-    rev_series = get_row(financials, ['Total Revenue', 'Operating Revenue'])
-    net_inc_series = get_row(financials, ['Net Income', 'Net Income Common Stockholders'])
-    ebitda_series = get_row(financials, ['EBITDA', 'Normalized EBITDA', 'Operating Income'])
-    
-    curr_assets = get_row(balance_sheet, ['Current Assets'])
-    curr_liab = get_row(balance_sheet, ['Current Liabilities'])
-    total_debt = get_row(balance_sheet, ['Total Debt', 'Financial Debt'])
-    cash = get_row(balance_sheet, ['Cash And Cash Equivalents'])
-    total_assets = get_row(balance_sheet, ['Total Assets'])
-    
-    ca_val = curr_assets.iloc[0] if curr_assets is not None and not curr_assets.empty else 0
-    cl_val = curr_liab.iloc[0] if curr_liab is not None and not curr_liab.empty else 0
-    td_val = total_debt.iloc[0] if total_debt is not None and not total_debt.empty else 0
-    cash_val = cash.iloc[0] if cash is not None and not cash.empty else 0
-    ta_val = total_assets.iloc[0] if total_assets is not None and not total_assets.empty else 1
-    
-    net_borc = td_val - cash_val
-    isletme_sermayesi = ca_val - cl_val
-    fin_borcluluk_orani = (td_val / ta_val) * 100 if ta_val else 0
-    cari_oran = (ca_val / cl_val) if cl_val else 0
-    
-    if isletme_sermayesi > 0: borcluluk_skor += 1
-    if fin_borcluluk_orani < 50: borcluluk_skor += 1
-    if net_borc < 0: borcluluk_skor += 1
-    if ca_val > td_val: borcluluk_skor += 1
-    if cari_oran > 1.5: borcluluk_skor += 1
-    if fin_borcluluk_orani < 30 or net_borc < 0: borcluluk_skor += 1
-
-    roe = (info.get('returnOnEquity') or 0) * 100
-    net_marj = (info.get('profitMargins') or 0) * 100
-    
-    if roe > 20: karlilik_skor += 2
-    elif roe > 10: karlilik_skor += 1
-    if net_marj > 15: karlilik_skor += 2
-    elif net_marj > 5: karlilik_skor += 1
-    if info.get('operatingMargins', 0) > 0.1: karlilik_skor += 2
-
-    if rev_series is not None and len(rev_series) >= 2 and rev_series.iloc[0] > rev_series.iloc[-1]: buyume_skor += 2
-    if ebitda_series is not None and len(ebitda_series) >= 2 and ebitda_series.iloc[0] > ebitda_series.iloc[-1]: buyume_skor += 2
-    if net_inc_series is not None and len(net_inc_series) >= 2 and net_inc_series.iloc[0] > net_inc_series.iloc[-1]: buyume_skor += 2
-
-    return {
-        'karlilik': min(karlilik_skor, 6),
-        'buyume': min(buyume_skor, 6),
-        'borcluluk': min(borcluluk_skor, 6)
-    }
 
 def hisse_detayli_analiz_et(hisse_kodu, filtreler):
     financials, balance_sheet, info, history = fetch_full_stock_data(hisse_kodu)
@@ -621,7 +839,7 @@ with tab_ana1:
             })
             
         csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_logo_terminal_v9.csv", "text/csv")
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "fintables_tooltip_terminal_v10.csv", "text/csv")
 
 with tab_ana2:
     if not df_tum_hisseler.empty:
@@ -632,7 +850,8 @@ with tab_ana2:
         fin, bal, info, hist = fetch_full_stock_data(tam_kod)
         
         if fin is not None and not fin.empty and bal is not None:
-            karne = hesapla_fintables_karne(fin, bal, info)
+            karne = hesapla_fintables_karne_detayli(fin, bal, info)
+            degisimler = hesapla_fintables_detayli_degisimler(fin)
             
             if hisse_row['Durum'] == '✅ Geçti':
                 st.success(f"**{secilen_hisse}** süzgeçten başarıyla geçti! Temel Skor: **{hisse_row['Temel Skor']} / 100**")
@@ -641,11 +860,8 @@ with tab_ana2:
 
             st.markdown(f"## 🏢 {secilen_hisse} Finansal Karnesi ve Özeti")
             
-            k1, k2, k3, k4 = st.columns(4)
-            k1.metric("Kârlılık Karnesi", f"{karne['karlilik']} / 6")
-            k2.metric("Büyüme Karnesi", f"{karne['buyume']} / 6")
-            k3.metric("Borçluluk Karnesi", f"{karne['borcluluk']} / 6")
-            k4.metric("Piyasa Değeri", format_para(info.get('marketCap')))
+            # HOVER POP-UP DESTEKLİ KARNE KARTLARI
+            render_karne_cards_with_tooltip(karne, degisimler)
             
             st.markdown("---")
             
