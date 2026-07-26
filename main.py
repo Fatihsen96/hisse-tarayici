@@ -9,63 +9,115 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-# --- SAYFA YAPILANDIRMASI & KOYU TEMA ---
+# --- SAYFA YAPILANDIRMASI & KUSURSUZ MAT SİYAH TEMA ---
 st.set_page_config(
-    page_title="Sermaye Terminali v7.0 Full",
+    page_title="Sermaye Terminali v8.0 True Dark",
     page_icon="🖤",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# GÖZÜ YORMAYAN YÜKSEK KONTRASTLI CSS & AKORDEON MENÜ STİLİ
+# KUSURSUZ MAT SİYAH & YÜKSEK KONTRASTLI OVERRIDE CSS
 st.markdown("""
     <style>
-    .stApp { background-color: #0e0e10 !important; color: #f1f5f9 !important; }
-    header[data-testid="stHeader"] { background-color: #0e0e10 !important; }
-    
-    /* Sol Menü & Akordeon (Expander) Düzeltmesi */
-    [data-testid="stSidebar"] {
-        background-color: #141418 !important;
-        border-right: 1px solid #26262a !important;
+    /* 1. Ana Arka Plan ve Header */
+    .stApp {
+        background-color: #0b0b0e !important;
+        color: #ffffff !important;
     }
-    [data-testid="stSidebar"] * { color: #ffffff !important; }
+    header[data-testid="stHeader"] {
+        background-color: #0b0b0e !important;
+    }
+    
+    /* 2. Sol Menü (Sidebar) Temizliği */
+    [data-testid="stSidebar"] {
+        background-color: #121216 !important;
+        border-right: 1px solid #22222a !important;
+    }
+    [data-testid="stSidebar"] * {
+        color: #ffffff !important;
+    }
     [data-testid="stSidebar"] .stMarkdown p, 
     [data-testid="stSidebar"] label, 
     [data-testid="stSidebar"] span {
-        color: #f1f5f9 !important;
-        font-weight: 500 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
     }
     
-    /* Expander (Açılır Başlıklar) Stili */
-    [data-testid="stSidebar"] .streamlit-expanderHeader {
-        background-color: #1c1c22 !important;
-        border: 1px solid #2e2e38 !important;
+    /* 3. Açılır Menü (Expander) Bembeyaz Kutu Fix */
+    div[data-testid="stExpander"] {
+        background-color: #18181e !important;
+        border: 1px solid #2b2b36 !important;
         border-radius: 8px !important;
+        margin-bottom: 10px !important;
+    }
+    div[data-testid="stExpander"] details summary {
+        background-color: #18181e !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+    }
+    div[data-testid="stExpander"] details summary * {
+        color: #ffffff !important;
         font-weight: bold !important;
+    }
+    div[data-testid="stExpander"] details summary:hover {
+        background-color: #22222b !important;
+    }
+
+    /* 4. Butonlar ve İndirme Butonu Beyaz Kutu Fix */
+    .stButton > button, .stDownloadButton > button {
+        background-color: #1e1e28 !important;
+        color: #ffffff !important;
+        border: 1px solid #333344 !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 8px 16px !important;
+    }
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        background-color: #282836 !important;
+        border-color: #38bdf8 !important;
         color: #38bdf8 !important;
     }
+
+    /* 5. Sekme (Tab) Metin Okunabilirliği */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #121216 !important;
+        padding: 6px !important;
+        border-radius: 8px !important;
+        border: 1px solid #22222a !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: #a0a0ab !important;
+        font-weight: 600 !important;
+        background-color: transparent !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #22222c !important;
+        color: #38bdf8 !important;
+        border-bottom: 2px solid #38bdf8 !important;
+    }
     
-    /* Metrik Kartları */
+    /* 6. Metrik Kartları */
     .stMetric {
-        background-color: #161618 !important;
-        border: 1px solid #26262a !important;
+        background-color: #16161c !important;
+        border: 1px solid #262632 !important;
         border-radius: 8px !important;
         padding: 12px !important;
     }
-    [data-testid="stMetricLabel"] { color: #94a3b8 !important; font-size: 0.85rem !important; }
+    [data-testid="stMetricLabel"] { color: #a0a0ab !important; font-size: 0.85rem !important; }
     [data-testid="stMetricValue"] { color: #38bdf8 !important; font-weight: 700 !important; font-size: 1.6rem !important; }
     
-    /* Sekme (Tab) Tasarımı */
-    .stTabs [data-baseweb="tab-list"] { background-color: #141418; padding: 6px; border-radius: 8px; border: 1px solid #26262a; }
-    .stTabs [data-baseweb="tab"] { color: #94a3b8 !important; font-weight: 600; border-radius: 6px; }
-    .stTabs [aria-selected="true"] { background-color: #222226 !important; color: #ffffff !important; border-bottom: 2px solid #38bdf8 !important; }
-    
-    .stDataFrame { border: 1px solid #26262a; border-radius: 8px; }
+    /* 7. Tablo (DataFrame) Koyu Zemin */
+    [data-testid="stDataFrame"] {
+        background-color: #14141a !important;
+        border: 1px solid #262632 !important;
+        border-radius: 8px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Sermaye & Değerleme Terminali v7.0")
-st.caption("BİST & Küresel Piyasalar - Kapsamlı Akordeon Filtreli & Skorlamalı Terminal")
+st.title("🖤 Sermaye & Değerleme Terminali v8.0")
+st.caption("BİST & Küresel Piyasalar - Mat Siyah Yüksek Kontrastlı Borsa Terminali")
 
 # --- MİLYAR / MİLYON FORMATLAMA ---
 def format_para(val):
@@ -81,11 +133,11 @@ def ciz_koyu_cubuk_grafik(data_series, baslik, renk="#38bdf8"):
     df_plot = pd.DataFrame({'Tarih': [str(x).split('T')[0] for x in data_series.iloc[:4][::-1].index], 'Değer': data_series.iloc[:4][::-1].values})
     fig = go.Figure(data=[go.Bar(x=df_plot['Tarih'], y=df_plot['Değer'], marker_color=renk)])
     fig.update_layout(
-        title=dict(text=baslik, font=dict(color="#f1f5f9", size=14)),
-        paper_bgcolor='#161618', plot_bgcolor='#161618',
+        title=dict(text=baslik, font=dict(color="#ffffff", size=14)),
+        paper_bgcolor='#16161c', plot_bgcolor='#16161c',
         height=260, margin=dict(l=10, r=10, t=35, b=10),
-        xaxis=dict(showgrid=False, tickfont=dict(color="#94a3b8")),
-        yaxis=dict(showgrid=True, gridcolor="#26262a", tickfont=dict(color="#94a3b8"))
+        xaxis=dict(showgrid=False, tickfont=dict(color="#a0a0ab")),
+        yaxis=dict(showgrid=True, gridcolor="#262632", tickfont=dict(color="#a0a0ab"))
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -254,7 +306,6 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
         elif son_rsi > 70: teknik_sinyal = "⚠️ Aşırı Isınmış"
         else: teknik_sinyal = "⚖️ Dengeli"
 
-    # TÜM FİLTRELERİN KONTROLÜ
     elenme_nedeni = "Başarılı"
     basarili_mi = True
 
@@ -312,17 +363,15 @@ def hisse_detayli_analiz_et(hisse_kodu, filtreler):
         'Son FAVÖK': format_para(son_favok)
     }
 
-# --- SOL SIDEBAR AKORDEON (EXPANDER) MENÜ YAPISI ---
+# --- SOL SIDEBAR AKORDEON MENÜSÜ ---
 st.sidebar.title("🎛️ Terminal Kontrolü")
 
-# 1. PİYASA SEÇİMİ AÇILIR MENÜSÜ
 with st.sidebar.expander("🎯 1. Piyasa & Endeks Seçimi", expanded=True):
     piyasa_secimi = st.radio(
         "Listenizi belirleyin:",
         ["BİST 30 (30 Hisse)", "BİST 100 (100 Hisse)", "BİST TÜM (150+ Hisse)", "S&P 500 (500 Hisse)", "NASDAQ 100 (100 Hisse)", "Özel Liste"]
     )
 
-# 2. TEMEL ANALİZ FİLTRELERİ AÇILIR MENÜSÜ
 with st.sidebar.expander("📊 2. Temel Analiz Filtreleri", expanded=True):
     fk_aktif = st.checkbox("F/K Filtresi", value=True)
     max_fk = st.slider("Maksimum F/K", 1.0, 100.0, 35.0, 1.0) if fk_aktif else 999.0
@@ -345,7 +394,6 @@ with st.sidebar.expander("📊 2. Temel Analiz Filtreleri", expanded=True):
     marj_aktif = st.checkbox("Net Kâr Marjı (%)", value=False)
     min_net_marj = st.slider("Minimum Net Marj (%)", 0, 50, 5, 1) if marj_aktif else -999.0
 
-# 3. TEKNİK ANALİZ FİLTRELERİ AÇILIR MENÜSÜ
 with st.sidebar.expander("⚡ 3. Teknik Analiz Filtreleri", expanded=False):
     rsi_aktif = st.checkbox("RSI (14) Filtresi", value=True)
     rsi_araligi = st.slider("RSI Aralığı", 0, 100, (30, 70)) if rsi_aktif else (0, 100)
@@ -421,7 +469,7 @@ def otomatık_paralel_tarama(hisse_listesi, filtreler):
 with st.spinner(f"{len(secilen_hisseler)} hisse taranıyor..."):
     df_tum_hisseler = otomatık_paralel_tarama(secilen_hisseler, filtre_paketı)
 
-# --- ARAYÜZ (KATEGORİZE TABLOLAR VE FINTABLES MODU) ---
+# --- ARAYÜZ ---
 tab_ana1, tab_ana2 = st.tabs(["📊 Terminal Süzgeç & Kategori Tablosu", "📈 Şirket Karnesi & Özet Bilanço (Fintables Mode)"])
 
 with tab_ana1:
@@ -483,7 +531,7 @@ with tab_ana1:
             )
             
         csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "tum_hisse_analiz_raporu_v7.csv", "text/csv")
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "tum_hisse_analiz_raporu_v8.csv", "text/csv")
 
 with tab_ana2:
     if not df_tum_hisseler.empty:
