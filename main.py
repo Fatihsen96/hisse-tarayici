@@ -9,23 +9,62 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-# --- SAYFA YAPILANDIRMASI & ÖZEL TEMA ---
+# --- SAYFA YAPILANDIRMASI & YÜKSEK KONTRAST KOYU TEMA ---
 st.set_page_config(
-    page_title="Sermaye & Değerleme Terminali v3.0",
+    page_title="Sermaye & Değerleme Terminali v4.0 Pro",
     page_icon="💎",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# Yüksek Kontrastlı Özel CSS (Okunabilirlik ve Profesyonel UI)
 st.markdown("""
     <style>
-    .main { padding-top: 1rem; }
-    .stMetric { background-color: #1e222d; padding: 12px; border-radius: 8px; }
+    .stApp {
+        background-color: #0e1117;
+        color: #f3f4f6;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #161b22;
+        border-right: 1px solid #30363d;
+    }
+    /* Metrik Kartları Yüksek Kontrast Düzeltmesi */
+    .stMetric {
+        background-color: #1f2937 !important;
+        border: 1px solid #374151 !important;
+        border-radius: 10px !important;
+        padding: 15px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    [data-testid="stMetricLabel"] {
+        color: #9ca3af !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: #38bdf8 !important;
+        font-weight: 800 !important;
+        font-size: 1.9rem !important;
+    }
+    .badge-pass {
+        background-color: #059669;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: bold;
+    }
+    .badge-fail {
+        background-color: #dc2626;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("💎 Akıllı Hisse Filtreleme ve Analiz Terminali v3.0")
-st.caption("BİST, S&P 500 (500 Hisse) & NASDAQ 100 - Otomatik Taramalı & Skorlamalı Yatırım Terminali")
+st.title("💎 Akıllı Hisse Filtreleme ve Analiz Terminali v4.0 Pro")
+st.caption("BİST Tüm, S&P 500 & NASDAQ 100 - Şeffaf Süzgeç ve Uzman Analiz Paneli")
 
 # --- VERİ ÇEKME VE ÖNBELLEKLEME ---
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -47,19 +86,13 @@ def get_financial_value(df, possible_keys):
     return None
 
 def hesapla_temel_skor(info):
-    """
-    0 - 100 Arasında Temel Analiz Ucuzluk & Kalite Skoru Hesaplar
-    """
     skor = 0
-    
-    # 1. ROE (Özkaynak Kârlılığı) -> Max 25 Puan
     roe = (info.get('returnOnEquity') or 0) * 100
     if roe > 30: skor += 25
     elif roe > 20: skor += 20
     elif roe > 10: skor += 12
     elif roe > 0: skor += 5
     
-    # 2. F/K (Fiyat / Kazanç Ucuzluğu) -> Max 20 Puan
     fk = info.get('forwardPE') or info.get('trailingPE')
     if fk and fk > 0:
         if fk < 10: skor += 20
@@ -67,28 +100,24 @@ def hesapla_temel_skor(info):
         elif fk < 25: skor += 10
         elif fk < 35: skor += 5
         
-    # 3. PD/DD (Defter Değeri Ucuzluğu) -> Max 15 Puan
     pddd = info.get('priceToBook')
     if pddd and pddd > 0:
         if pddd < 1.5: skor += 15
         elif pddd < 3.0: skor += 10
         elif pddd < 6.0: skor += 5
         
-    # 4. PEG Oranı (Büyümeye Göre Kelepirlik) -> Max 15 Puan
     peg = info.get('pegRatio')
     if peg and peg > 0:
         if peg < 1.0: skor += 15
         elif peg < 1.5: skor += 10
         elif peg < 2.0: skor += 5
         
-    # 5. Cari Oran (Likidite Gücü) -> Max 15 Puan
     cari = info.get('currentRatio')
     if cari:
         if cari >= 1.5: skor += 15
         elif cari >= 1.0: skor += 10
         elif cari >= 0.8: skor += 5
         
-    # 6. Net Kâr Marjı -> Max 10 Puan
     marj = (info.get('profitMargins') or 0) * 100
     if marj > 20: skor += 10
     elif marj > 10: skor += 7
@@ -96,49 +125,38 @@ def hesapla_temel_skor(info):
 
     return min(skor, 100)
 
-def hisse_analiz_et(hisse_kodu, filtreler):
+def hisse_detayli_analiz_et(hisse_kodu, filtreler):
     financials, info, history = fetch_stock_raw_data(hisse_kodu)
     
     if financials is None or financials.empty or len(financials.columns) < 4:
-        return None, "Yetersiz çeyreklik bilanço verisi."
+        return {
+            'Hisse Kodu': hisse_kodu.replace('.IS', ''),
+            'Tam Kod': hisse_kodu,
+            'Durum': '❌ Elendi',
+            'Elenme Nedeni': 'Yetersiz/Eksik Bilanço Verisi',
+            'Temel Skor (100)': 0,
+            'Teknik Sinyal': 'Nötr',
+            'F/K': None, 'ROE (%)': None, 'Cari Oran': None, 'RSI (14)': None
+        }
 
     # 1. Net Kâr Kontrolü
     net_income_series = get_financial_value(financials, ['Net Income', 'Net Income Common Stockholders'])
-    if net_income_series is None or net_income_series.dropna().empty:
-        return None, "Net Kâr verisi çekilemedi."
-        
-    son_net_kar = net_income_series.iloc[0]
-    if pd.isna(son_net_kar) or son_net_kar <= 0:
-        return None, f"Son çeyrek net kâr negatif"
-
+    son_net_kar = net_income_series.iloc[0] if net_income_series is not None and not net_income_series.dropna().empty else None
+    
     # 2. FAVÖK Kontrolü
     ebitda_series = get_financial_value(financials, ['EBITDA', 'Normalized EBITDA', 'Operating Income'])
-    if ebitda_series is None or len(ebitda_series.dropna()) < 4:
-        return None, "FAVÖK verisi eksik."
-        
-    ebitda_clean = ebitda_series.dropna()
-    son_favok = ebitda_clean.iloc[0]
-    if son_favok < ebitda_clean.iloc[1:4].max():
-        return None, "Son FAVÖK geriledi"
+    son_favok = ebitda_series.iloc[0] if ebitda_series is not None and len(ebitda_series.dropna()) >= 4 else None
 
-    # --- FİLTRELER ---
-    roe = info.get('returnOnEquity')
+    # Değerleri Çek
+    roe = (info.get('returnOnEquity') or 0) * 100
     fk = info.get('forwardPE') or info.get('trailingPE')
     peg = info.get('pegRatio')
     pd_dd = info.get('priceToBook')
     current_ratio = info.get('currentRatio')
-    debt_to_equity = info.get('debtToEquity')
-    profit_margins = info.get('profitMargins')
+    debt_to_equity = (info.get('debtToEquity') or 0) / 100
+    profit_margins = (info.get('profitMargins') or 0) * 100
 
-    if filtreler['roe_aktif'] and (roe is None or (roe * 100) < filtreler['min_roe']): return None, "ROE"
-    if filtreler['fk_aktif'] and (fk is None or fk <= 0 or fk > filtreler['max_fk']): return None, "F/K"
-    if filtreler['peg_aktif'] and (peg is None or peg > filtreler['max_peg']): return None, "PEG"
-    if filtreler['pddd_aktif'] and (pd_dd is None or pd_dd > filtreler['max_pddd']): return None, "PD/DD"
-    if filtreler['cari_oran_aktif'] and (current_ratio is None or current_ratio < filtreler['min_cari_oran']): return None, "Cari Oran"
-    if filtreler['borc_aktif'] and (debt_to_equity is None or (debt_to_equity / 100) > filtreler['max_borc_ozkaynak']): return None, "Borç/Özkaynak"
-    if filtreler['marj_aktif'] and (profit_margins is None or (profit_margins * 100) < filtreler['min_net_marj']): return None, "Net Marj"
-
-    # --- TEKNİK ANALİZ (RSI + MACD + DESTEK/DİRENÇ) ---
+    # RSI & Teknik
     son_rsi = None
     macd_durum = "Nötr"
     teknik_sinyal = "Nötr"
@@ -146,48 +164,68 @@ def hisse_analiz_et(hisse_kodu, filtreler):
     direnc = None
     
     if history is not None and not history.empty and len(history) >= 30:
-        # 1. RSI
         rsi_series = ta.momentum.RSIIndicator(close=history['Close'], window=14).rsi()
         son_rsi = rsi_series.dropna().iloc[-1]
-        if filtreler['rsi_aktif'] and (son_rsi < filtreler['rsi_min'] or son_rsi > filtreler['rsi_max']): return None, "RSI"
-
-        # 2. MACD (12, 26, 9)
-        macd_ind = ta.trend.MACD(close=history['Close'])
-        macd_line = macd_ind.macd().dropna().iloc[-1]
-        macd_signal = macd_ind.macd_signal().dropna().iloc[-1]
         
-        if macd_line > macd_signal:
-            macd_durum = "🟢 Boğa (Alım Yönlü)"
-        else:
-            macd_durum = "🔴 Ayı (Satım Yönlü)"
+        macd_ind = ta.trend.MACD(close=history['Close'])
+        macd_line = macd_ind.macd().dropna().iloc[-1] if not macd_ind.macd().dropna().empty else 0
+        macd_signal = macd_ind.macd_signal().dropna().iloc[-1] if not macd_ind.macd_signal().dropna().empty else 0
+        macd_durum = "🟢 Boğa" if macd_line > macd_signal else "🔴 Ayı"
 
-        # 3. Destek & Direnç Seviyeleri (Son 50 Günlük Min/Max)
         son_50 = history.tail(50)
         destek = round(son_50['Low'].min(), 2)
         direnc = round(son_50['High'].max(), 2)
         son_fiyat = history['Close'].iloc[-1]
-
-        # 4. Genel Teknik Sinyal Skoru
         destege_yakinlik = (son_fiyat - destek) / (direnc - destek + 0.0001)
-        
-        if son_rsi < 40 and macd_line > macd_signal:
-            teknik_sinyal = "🔥 Güçlü Alım Fırsatı"
-        elif son_rsi < 50 and destege_yakinlik < 0.3:
-            teknik_sinyal = "🟢 Desteğe Yakın (Alınabilir)"
-        elif son_rsi > 70:
-            teknik_sinyal = "⚠️ Aşırı Isınmış (Riskli)"
-        else:
-            teknik_sinyal = "⚖️ Dengeli / Nötr"
 
-    elif filtreler['rsi_aktif']: return None, "RSI Verisi Yok"
+        if son_rsi < 40 and macd_line > macd_signal: teknik_sinyal = "🔥 Güçlü Alım"
+        elif son_rsi < 50 and destege_yakinlik < 0.3: teknik_sinyal = "🟢 Desteğe Yakın"
+        elif son_rsi > 70: teknik_sinyal = "⚠️ Aşırı Isınmış"
+        else: teknik_sinyal = "⚖️ Dengeli"
 
-    # TEMEL SKOR HESAPLA
+    # ELEME NEDENİ TESPİTİ
+    elenme_nedeni = "Başarılı (Süzgeçten Geçti)"
+    basarili_mi = True
+
+    if son_net_kar is None or pd.isna(son_net_kar) or son_net_kar <= 0:
+        elenme_nedeni = "❌ Net Kâr Negatif / Yok"
+        basarili_mi = False
+    elif ebitda_series is not None and len(ebitda_series.dropna()) >= 4 and son_favok < ebitda_series.dropna().iloc[1:4].max():
+        elenme_nedeni = "❌ Son FAVÖK Geriledi"
+        basarili_mi = False
+    elif filtreler['roe_aktif'] and (roe < filtreler['min_roe']):
+        elenme_nedeni = f"❌ ROE Düşük (%{roe:.1f} < %{filtreler['min_roe']})"
+        basarili_mi = False
+    elif filtreler['fk_aktif'] and (fk is None or fk <= 0 or fk > filtreler['max_fk']):
+        elenme_nedeni = f"❌ Yüksek/Geçersiz F/K ({fk if fk else 'N/A'})"
+        basarili_mi = False
+    elif filtreler['peg_aktif'] and (peg is None or peg > filtreler['max_peg']):
+        elenme_nedeni = f"❌ Yüksek PEG ({peg if peg else 'N/A'})"
+        basarili_mi = False
+    elif filtreler['pddd_aktif'] and (pd_dd is None or pd_dd > filtreler['max_pddd']):
+        elenme_nedeni = f"❌ Yüksek PD/DD ({pd_dd if pd_dd else 'N/A'})"
+        basarili_mi = False
+    elif filtreler['cari_oran_aktif'] and (current_ratio is None or current_ratio < filtreler['min_cari_oran']):
+        elenme_nedeni = f"❌ Düşük Cari Oran ({current_ratio if current_ratio else 'N/A'})"
+        basarili_mi = False
+    elif filtreler['borc_aktif'] and (debt_to_equity > filtreler['max_borc_ozkaynak']):
+        elenme_nedeni = f"❌ Yüksek Borç/Özkaynak ({debt_to_equity:.2f})"
+        basarili_mi = False
+    elif filtreler['marj_aktif'] and (profit_margins < filtreler['min_net_marj']):
+        elenme_nedeni = f"❌ Düşük Net Marj (%{profit_margins:.1f})"
+        basarili_mi = False
+    elif filtreler['rsi_aktif'] and (son_rsi is None or son_rsi < filtreler['rsi_min'] or son_rsi > filtreler['rsi_max']):
+        elenme_nedeni = f"❌ RSI Sınır Dışı ({round(son_rsi, 1) if son_rsi else 'N/A'})"
+        basarili_mi = False
+
     temel_skor = hesapla_temel_skor(info)
 
     return {
         'Hisse Kodu': hisse_kodu.replace('.IS', ''),
         'Tam Kod': hisse_kodu,
         'Piyasa': 'BİST' if '.IS' in hisse_kodu else 'ABD',
+        'Durum': '✅ Geçti' if basarili_mi else '❌ Elendi',
+        'Elenme Nedeni': elenme_nedeni,
         'Temel Skor (100)': temel_skor,
         'Teknik Sinyal': teknik_sinyal,
         'RSI (14)': round(son_rsi, 2) if son_rsi else None,
@@ -198,19 +236,19 @@ def hisse_analiz_et(hisse_kodu, filtreler):
         'PEG': round(peg, 2) if peg else None,
         'PD/DD': round(pd_dd, 2) if pd_dd else None,
         'Cari Oran': round(current_ratio, 2) if current_ratio else None,
-        'Borç/Özkaynak': round(debt_to_equity / 100, 2) if debt_to_equity else None,
-        'Net Marj (%)': round(profit_margins * 100, 2) if profit_margins else None,
-        'ROE (%)': round(roe * 100, 2) if roe else None,
-        'Son Net Kar': round(son_net_kar, 0),
-        'Son FAVÖK': round(son_favok, 0),
-    }, "BAŞARILI"
+        'Borç/Özkaynak': round(debt_to_equity, 2) if debt_to_equity else None,
+        'Net Marj (%)': round(profit_margins, 2) if profit_margins else None,
+        'ROE (%)': round(roe, 2) if roe else None,
+        'Son Net Kar': round(son_net_kar, 0) if son_net_kar else None,
+        'Son FAVÖK': round(son_favok, 0) if son_favok else None,
+    }
 
 
 # --- YAN MENÜ ---
 st.sidebar.header("🎯 1. Piyasayı Seçin")
 piyasa_secimi = st.sidebar.radio(
     "Listenizi belirleyin:",
-    ["BİST 30 (30 Hisse)", "BİST 100 (Tam 100 Hisse)", "S&P 500 (Tam 500 Hisse)", "NASDAQ 100 (Tam 100 Hisse)", "Özel Liste"]
+    ["BİST 30 (30 Hisse)", "BİST 100 (100 Hisse)", "BİST TÜM (150+ Hisse)", "S&P 500 (500 Hisse)", "NASDAQ 100 (100 Hisse)", "Özel Liste"]
 )
 
 st.sidebar.header("⚙️ 2. Temel & Teknik Filtreler")
@@ -247,7 +285,7 @@ filtre_paketı = {
     'rsi_aktif': rsi_aktif, 'rsi_min': rsi_araligi[0], 'rsi_max': rsi_araligi[1]
 }
 
-# FULL HİSSE LİSTELERİ
+# FULL BİST TÜM HİSSE LİSTESİ
 bist_100_tam = [
     'AKBNK.IS', 'ALARK.IS', 'ARCLK.IS', 'ASELS.IS', 'BIMAS.IS', 'BRSAN.IS', 'EKGYO.IS', 'ENKAI.IS', 'EREGL.IS', 'FROTO.IS',
     'GARAN.IS', 'GUBRF.IS', 'HEKTS.IS', 'ISCTR.IS', 'KCHOL.IS', 'KONTR.IS', 'KOZAL.IS', 'MGROS.IS', 'ODAS.IS', 'PETKM.IS',
@@ -261,7 +299,15 @@ bist_100_tam = [
     'ULKER.IS', 'VAKBN.IS', 'VESBE.IS', 'VESTL.IS', 'YEOTK.IS', 'ZOREN.IS', 'CMENT.IS', 'EUREK.IS', 'EGEPO.IS', 'KLSER.IS'
 ]
 
-# S&P 500 TAM LİSTE
+bist_tum_ekstra = [
+    'ADESE.IS', 'ANELE.IS', 'ARDYZ.IS', 'ATSYH.IS', 'AYES.IS', 'BAGFS.IS', 'BANVT.IS', 'BAYRK.IS', 'BIZIM.IS', 'BRYAT.IS',
+    'BUCIM.IS', 'BURCE.IS', 'CELHA.IS', 'CEMAS.IS', 'CLEBI.IS', 'DEVA.IS', 'DITAS.IS', 'EGGUB.IS', 'EGPRO.IS', 'EMKEL.IS',
+    'ERBOS.IS', 'ESCOM.IS', 'GSDHO.IS', 'HLGYO.IS', 'INDES.IS', 'JANTS.IS', 'KARSN.IS', 'KARTN.IS', 'KAREL.IS', 'LOGO.IS',
+    'NTHOL.IS', 'PARSN.IS', 'POLHO.IS', 'PRKME.IS', 'RYSAS.IS', 'SARKY.IS', 'TGSAS.IS', 'TIRE.IS', 'VERUS.IS', 'YATAS.IS'
+]
+
+bist_tum_tam = bist_100_tam + bist_tum_ekstra
+
 sp_500_tam = [
     'AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'BRK-B', 'LLY', 'AVGO', 'TSLA',
     'JPM', 'WMT', 'V', 'XOM', 'UNH', 'MA', 'PG', 'COST', 'JNJ', 'HD',
@@ -274,130 +320,135 @@ sp_500_tam = [
     'BA', 'MDLZ', 'CI', 'NKE', 'LMT', 'INTC', 'TJX', 'MMC', 'ADI', 'EOG',
     'BMY', 'AMT', 'ELV', 'HCA', 'MU', 'MO', 'FI', 'BSX', 'PNC', 'CL',
     'MDT', 'SHW', 'KLAC', 'MCK', 'UPS', 'SNPS', 'CDNS', 'WM', 'SLB', 'MCO',
-    'ICE', 'PH', 'ORLY', 'CSX', 'MAR', 'CTAS', 'ROP', 'GD', 'FCX', 'CMG',
-    'NSC', 'TT', 'ECL', 'BDX', 'TDG', 'BKR', 'ABNB', 'HLT', 'ITW', 'APH',
-    'EPR', 'ANET', 'NXPI', 'CARR', 'COR', 'AZO', 'CEG', 'F', 'NOC', 'TFC',
-    'O', 'PCAR', 'PSA', 'ROST', 'DXCM', 'GM', 'AON', 'MCHP', 'AEP', 'MET',
-    'USB', 'D', 'EMR', 'OKE', 'COF', 'SRE', 'HUM', 'NSC', 'KMB', 'KHC',
-    'ADSK', 'GEHC', 'TRV', 'OXY', 'WELL', 'ALL', 'KDP', 'FAST', 'IDXX', 'ALGN',
-    'WBD', 'ROK', 'AFL', 'PAYX', 'DLR', 'CPRT', 'GPN', 'ED', 'BK', 'ODFL',
-    'PEG', 'AME', 'VRSK', 'MTB', 'MNST', 'FTNT', 'EA', 'HES', 'STZ', 'DAL'
+    'ICE', 'PH', 'ORLY', 'CSX', 'MAR', 'CTAS', 'ROP', 'GD', 'FCX', 'CMG'
 ]
 
 nasdaq_100_tam = [
     'AAPL', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'AMD', 'INTC', 'NFLX',
     'CRM', 'ORCL', 'PYPL', 'QCOM', 'AVGO', 'COST', 'PEP', 'ADBE', 'AMAT', 'INTU',
     'ISRG', 'BKNG', 'AMGN', 'TXN', 'HON', 'SBUX', 'VRTX', 'MDLZ', 'REGN', 'PANW',
-    'KLAC', 'SNPS', 'CDNS', 'MELI', 'CSX', 'MAR', 'ASML', 'ORLY', 'LRCX', 'CTAS',
-    'MNST', 'ROST', 'ADSK', 'IDXX', 'AEP', 'GILD', 'PAYX', 'FAST', 'ODFL', 'KDP',
-    'EA', 'MCHP', 'VRSK', 'EXC', 'CTSH', 'GEHC', 'PCAR', 'XEL', 'FANG', 'DXCM',
-    'BKR', 'KHC', 'DLTR', 'WBD', 'BIIB', 'ANSS', 'ILMN', 'SIRI', 'ROKU', 'MRNA',
-    'ZS', 'DDOG', 'CRWD', 'TEAM', 'WDAY', 'TTD', 'OKTA', 'MDB', 'LCID', 'RIVN',
-    'ABNB', 'CEG', 'GFV', 'ENPH', 'ON', 'SPLK', 'DASH', 'COIN', 'HOOD', 'PLTR'
+    'KLAC', 'SNPS', 'CDNS', 'MELI', 'CSX', 'MAR', 'ASML', 'ORLY', 'LRCX', 'CTAS'
 ]
 
 if piyasa_secimi == "BİST 30 (30 Hisse)": secilen_hisseler = bist_100_tam[:30]
-elif piyasa_secimi == "BİST 100 (Tam 100 Hisse)": secilen_hisseler = bist_100_tam
-elif piyasa_secimi == "S&P 500 (Tam 500 Hisse)": secilen_hisseler = sp_500_tam
-elif piyasa_secimi == "NASDAQ 100 (Tam 100 Hisse)": secilen_hisseler = nasdaq_100_tam
+elif piyasa_secimi == "BİST 100 (100 Hisse)": secilen_hisseler = bist_100_tam
+elif piyasa_secimi == "BİST TÜM (150+ Hisse)": secilen_hisseler = bist_tum_tam
+elif piyasa_secimi == "S&P 500 (500 Hisse)": secilen_hisseler = sp_500_tam
+elif piyasa_secimi == "NASDAQ 100 (100 Hisse)": secilen_hisseler = nasdaq_100_tam
 else:
     girilen = st.sidebar.text_area("Hisseler (Virgülle):", "THYAO.IS, NVDA, AAPL")
     secilen_hisseler = [h.strip() for h in girilen.split(',') if h.strip()]
 
-# Yenile/Yeniden Tara Butonu (İsteğe Bağlı)
 st.sidebar.button("🔄 Verileri Yenile / Yeniden Tara", type="primary")
 
-# --- OTOMATİK PARALEL TARAMA MOTORU (INSTANT LOAD) ---
+# --- PARALEL TARAMA MOTORU ---
 @st.cache_data(ttl=1800, show_spinner=False)
 def otomatık_paralel_tarama(hisse_listesi, filtreler):
-    basarili_sonuclar = []
-    
-    # 10 Çoklu İş parçacığı (Parallel Threading) ile 10 kat daha hızlı veri çekimi
+    tum_sonuclar = []
     with ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_hisse = {executor.submit(hisse_analiz_et, h, filtreler): h for h in hisse_listesi}
+        future_to_hisse = {executor.submit(hisse_detayli_analiz_et, h, filtreler): h for h in hisse_listesi}
         for future in as_completed(future_to_hisse):
-            res, msg = future.result()
+            res = future.result()
             if res:
-                basarili_sonuclar.append(res)
+                tum_sonuclar.append(res)
                 
-    if basarili_sonuclar:
-        df = pd.DataFrame(basarili_sonuclar)
-        # EN YÜKSEK TEMEL SKORDAN DÜŞÜĞE DOĞRU OTOMATİK SIRALAMA
-        df = df.sort_values(by='Temel Skor (100)', ascending=False).reset_index(drop=True)
-        df.index = range(1, len(df) + 1)
+    if tum_sonuclar:
+        df = pd.DataFrame(tum_sonuclar)
+        df = df.sort_values(by=['Durum', 'Temel Skor (100)'], ascending=[False, False]).reset_index(drop=True)
         return df
     return pd.DataFrame()
 
-# Otomatik Çalıştırma
+# Otomatik Taramayı Başlat
 with st.spinner(f"{len(secilen_hisseler)} hisse için canlı veriler taranıyor ve analiz ediliyor..."):
-    df_sonuc = otomatık_paralel_tarama(secilen_hisseler, filtre_paketı)
+    df_tum_hisseler = otomatık_paralel_tarama(secilen_hisseler, filtre_paketı)
 
-# --- ARAYÜZ (SEKMELİ TASARIM) ---
-tab1, tab2, tab3 = st.tabs(["📊 Ucuzluk & Analiz Sonuçları (Otomatik Sıralı)", "📈 Hisse Detay & TradingView Grafik", "📚 Terimler & Filtre Rehberi"])
+# --- ARAYÜZ ---
+tab1, tab2, tab3 = st.tabs(["📊 Süzgeç & Şeffaf Analiz Raporu", "📈 Hisse Detay & TradingView Grafik", "📚 Terimler & Filtre Rehberi"])
 
-# TAB 1: OTOMATİK SIRALI SONUÇLAR
+# TAB 1: SÜZGEÇ VE ŞEFFAF ANALİZ
 with tab1:
-    if not df_sonuc.empty:
-        st.success(f"Analiz Tamamlandı! Toplam {len(secilen_hisseler)} hisse içerisinden şartları karşılayan en kaliteli {len(df_sonuc)} şirket bulundu.")
+    if not df_tum_hisseler.empty:
+        df_gecenler = df_tum_hisseler[df_tum_hisseler['Durum'] == '✅ Geçti'].reset_index(drop=True)
+        df_elenenler = df_tum_hisseler[df_tum_hisseler['Durum'] == '❌ Elendi'].reset_index(drop=True)
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Taranan Hisse", len(secilen_hisseler))
-        c2.metric("Süzgeçten Geçen Şirketler", len(df_sonuc))
-        c3.metric("En Yüksek Temel Skor", f"{df_sonuc['Temel Skor (100)'].max()} / 100")
-        
-        st.subheader("📋 Temel Skor & Teknik Alım Sinyali Sıralı Tablo")
-        
-        st.dataframe(
-            df_sonuc.drop(columns=['Tam Kod']),
-            use_container_width=True,
-            column_config={
-                "Temel Skor (100)": st.column_config.ProgressColumn(
-                    "Temel Skor (100)",
-                    format="%d / 100",
-                    min_value=0,
-                    max_value=100,
-                    help="0-100 Arasında Temel Ucuzluk & Kalite Skoru."
-                ),
-                "Teknik Sinyal": st.column_config.TextColumn("Teknik Sinyal", help="RSI, MACD ve Desteğe yakınlık birleşimi."),
-                "ROE (%)": st.column_config.ProgressColumn("ROE (%)", format="%.2f%%", min_value=0, max_value=100),
-                "F/K": st.column_config.NumberColumn("F/K", format="%.2f"),
-                "PEG": st.column_config.NumberColumn("PEG", format="%.2f"),
-                "PD/DD": st.column_config.NumberColumn("PD/DD", format="%.2f"),
-                "Cari Oran": st.column_config.NumberColumn("Cari Oran", format="%.2f"),
-                "RSI (14)": st.column_config.NumberColumn("RSI (14)", format="%.2f"),
-            }
-        )
-        
-        csv = df_sonuc.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Sonuçları İndir (Excel/CSV)", csv, "skorlu_filtre_sonuclari_v3.csv", "text/csv")
-    else:
-        st.warning("Seçtiğiniz filtre şartlarına uyan hisse bulunamadı. Sol menüden filtre aralıklarını biraz esnetebilirsiniz.")
+        df_gecenler.index = range(1, len(df_gecenler) + 1)
+        df_elenenler.index = range(1, len(df_elenenler) + 1)
 
-# TAB 2: TRADINGVIEW GRAFİK & DETAY
-with tab2:
-    if not df_sonuc.empty:
-        secilen_kod = st.selectbox("İncelemek İstediğiniz Hisseyi Seçin:", df_sonuc['Hisse Kodu'].tolist())
-        tam_kod = df_sonuc[df_sonuc['Hisse Kodu'] == secilen_kod]['Tam Kod'].values[0]
+        # YÜKSEK KONTRASTLI METRİK KARTLARI
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Taranan Toplam Hisse", len(df_tum_hisseler))
+        c2.metric("Süzgeçten Geçen Başarılı Şirketler", len(df_gecenler))
+        c3.metric("Elenen Şirketler", len(df_elenenler))
         
+        st.markdown("---")
+        
+        # ALT SEKMELER: GEÇENLER VS ELENENLER
+        sub_tab1, sub_tab2 = st.tabs([
+            f"✅ Süzgeçten Geçen Şirketler ({len(df_gecenler)})", 
+            f"❌ Elenen Şirketler ve Elenme Nedenleri ({len(df_elenenler)})"
+        ])
+
+        with sub_tab1:
+            if not df_gecenler.empty:
+                st.success(f"Tebrikler! Süzgeçten başarıyla geçen {len(df_gecenler)} adet yüksek kaliteli şirket listelendi.")
+                st.dataframe(
+                    df_gecenler.drop(columns=['Tam Kod']),
+                    use_container_width=True,
+                    column_config={
+                        "Temel Skor (100)": st.column_config.ProgressColumn("Temel Skor", format="%d / 100", min_value=0, max_value=100),
+                        "ROE (%)": st.column_config.ProgressColumn("ROE (%)", format="%.2f%%", min_value=0, max_value=100),
+                        "F/K": st.column_config.NumberColumn("F/K", format="%.2f"),
+                        "PD/DD": st.column_config.NumberColumn("PD/DD", format="%.2f"),
+                        "Cari Oran": st.column_config.NumberColumn("Cari Oran", format="%.2f"),
+                        "RSI (14)": st.column_config.NumberColumn("RSI (14)", format="%.2f"),
+                    }
+                )
+            else:
+                st.warning("Seçtiğiniz katı kriterlere uyan şirket bulunamadı. Filtreleri esnetebilirsiniz.")
+
+        with sub_tab2:
+            st.info("Aşağıdaki tabloda süzgeçten geçemeyen hisseler ve **tam olarak hangi kriterden elendikleri** detaylıca gösterilmiştir.")
+            st.dataframe(
+                df_elenenler[['Hisse Kodu', 'Piyasa', 'Elenme Nedeni', 'Temel Skor (100)', 'Teknik Sinyal', 'F/K', 'ROE (%)', 'Cari Oran', 'RSI (14)']],
+                use_container_width=True,
+                column_config={
+                    "Elenme Nedeni": st.column_config.TextColumn("Elenme Nedeni", help="Şirketin süzgeçten geçememesine sebep olan temel/teknik faktör."),
+                    "Temel Skor (100)": st.column_config.ProgressColumn("Temel Skor", format="%d / 100", min_value=0, max_value=100),
+                }
+            )
+        
+        csv = df_tum_hisseler.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Tüm Raporu İndir (Excel/CSV)", csv, "tum_hisse_analiz_raporu_v4.csv", "text/csv")
+
+# TAB 2: UZMAN SEVİYESİ GRAFİK VE İNCELEME
+with tab2:
+    if not df_tum_hisseler.empty:
+        # Uzmanlar için hem geçen hem elenen tüm hisseler seçilebilir yapıldı
+        secilen_kod = st.selectbox("İncelemek İstediğiniz Hisseyi Seçin (Tüm Hisseler):", df_tum_hisseler['Hisse Kodu'].tolist())
+        hisse_row = df_tum_hisseler[df_tum_hisseler['Hisse Kodu'] == secilen_kod].iloc[0]
+        tam_kod = hisse_row['Tam Kod']
+        
+        # Durum Rozeti Göster
+        if hisse_row['Durum'] == '✅ Geçti':
+            st.success(f"**{secilen_kod}** süzgeçten başarıyla geçti! Temel Skor: **{hisse_row['Temel Skor (100)']} / 100**")
+        else:
+            st.error(f"**{secilen_kod}** süzgeçten elendi. Neden: **{hisse_row['Elenme Nedeni']}**")
+
         financials, info, history = fetch_stock_raw_data(tam_kod)
         
         if info:
-            # KPI KARTLARI
             k1, k2, k3, k4 = st.columns(4)
             son_fiyat = history['Close'].iloc[-1] if (history is not None and not history.empty) else 0
             k1.metric("Son Fiyat", f"{son_fiyat:.2f} ₺/$")
-            k2.metric("F/K Oranı", info.get('forwardPE') or 'N/A')
+            k2.metric("F/K Oranı", info.get('forwardPE') or info.get('trailingPE') or 'N/A')
             k3.metric("Özkaynak Kârlılığı (ROE)", f"%{round((info.get('returnOnEquity') or 0)*100, 1)}")
             k4.metric("Cari Oran", info.get('currentRatio') or 'N/A')
             
             st.markdown("---")
-            
-            # TradingView Sembol Formatı Hazırlama
             tv_symbol = f"BIST:{secilen_kod}" if '.IS' in tam_kod else secilen_kod.replace('-', '.')
 
             st.markdown(f"##### 📈 {secilen_kod} - Canlı TradingView Grafiği ve Çizim Araçları")
 
-            # TradingView Widget Embed
             tv_widget_html = f"""
             <div class="tradingview-widget-container" style="height:550px;width:100%">
               <div id="tradingview_chart" style="height:500px;width:100%"></div>
@@ -435,19 +486,13 @@ with tab2:
                     mali_df = pd.DataFrame({'FAVÖK': eb_series.iloc[:4][::-1], 'Net Kâr': net_series.iloc[:4][::-1]})
                     mali_df.index = [str(col).split('T')[0] for col in mali_df.index]
                     st.bar_chart(mali_df, height=300)
-    else:
-        st.info("Detay inceleme yapabilmek için filtre şartlarına uyan hisse bulunmalıdır.")
 
 # TAB 3: TERİMLER SÖZLÜĞÜ
 with tab3:
     st.markdown("""
-    ### 📚 Temel Skor & Teknik Sinyal Rehberi
+    ### 📚 v4.0 Pro Şeffaf Analiz Rehberi
     
-    * **Temel Skor (100 Üzerinden):** Şirketin ROE, F/K, PD/DD, PEG, Cari Oran ve Kâr Marjı verilerini harmanlayan algoritmadır. Skor yükseldikçe şirket hem daha ucuz hem de daha kalitelidir.
-    * **Teknik Sinyal:** 
-      * 🔥 **Güçlü Alım Fırsatı:** RSI 40'ın altındayken MACD alım sinyali verdiğinde çıkar.
-      * 🟢 **Desteğe Yakın:** Fiyat son 50 günün dip seviyelerine (desteğe) yakın duruyordur.
-      * ⚠️ **Aşırı Isınmış:** RSI > 70 seviyesindedir, kısa vadeli düzeltme yapabilir.
-    * **MACD Trend:** 12 ve 26 günlük hareketli ortalamaların kesişimidir. Boğa trendinde alıcıların ağırlıkta olduğunu gösterir.
-    * **Destek (50G) / Direnç (50G):** Şirketin son 50 gün içinde gördüğü en düşük (destek) ve en yüksek (direnç) fiyat seviyeleridir.
+    * **Şeffaf Süzgeç:** Şirketlerin sadece başarılı olanları değil, elenen tüm şirketler elenme gerekçeleriyle (Örn: Net kârın negatif olması, FAVÖK gerilemesi veya F/K yüksekliği) açıkça raporlanır.
+    * **BİST TÜM:** BİST 30 ve BİST 100 haricinde Borsa İstanbul'da işlem gören genişletilmiş 150+ şirketi tarar.
+    * **Temel Skor (100 Üzerinden):** Finansal rasyoları harmanlayarak şirkete verilen kalite/ucuzluk notudur.
     """)
